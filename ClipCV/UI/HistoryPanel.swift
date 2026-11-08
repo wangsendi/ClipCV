@@ -43,6 +43,8 @@ final class HistoryPanelController {
     // Keep list X fixed when preview opens left/right.
     private var anchoredListMinX: CGFloat?
     private var lastShowAnchor: PanelAnchor = .cursor
+    private var pendingItemCount: Int?
+    private var resizeCoalesceTask: Task<Void, Never>?
 
     init(settings: AppSettings, actions: HistoryActions, container: ModelContainer) {
         self.settings = settings
@@ -110,12 +112,10 @@ final class HistoryPanelController {
 
     func show(at anchor: PanelAnchor) {
         previewLeading = false
-        // List-only size first so leftover preview width doesn't skew cursor anchoring.
+        // Size from the real item count before the first frame: the cursor-anchored
+        // origin depends on height, so a stale height would land the panel far away.
         setPanelFrame(
-            NSRect(
-                origin: panel.frame.origin,
-                size: NSSize(width: PopupStyle.defaultWidth, height: PopupStyle.defaultPanelHeight)
-            ),
+            NSRect(origin: panel.frame.origin, size: NSSize(width: PopupStyle.defaultWidth, height: openHeight)),
             display: false
         )
         let effective = resolvedAnchor(from: anchor)
@@ -125,25 +125,26 @@ final class HistoryPanelController {
         PanelChrome.applyRoundedCorners(to: panel, radius: PopupStyle.panelCornerRadius)
         panel.orderFrontRegardless()
         panel.makeKey()
-        if effective == .statusItem || settings.popupPosition == .statusItem {
+        if effective == .statusItem {
             anchorButton?.isHighlighted = true
         }
         installOutsideMonitors()
     }
 
+    private var openHeight: CGFloat {
+        let count = (try? AppRuntime.container.mainContext.fetchCount(
+            FetchDescriptor<ClipboardItem>()
+        )) ?? 0
+        return max(PopupStyle.preferredHeight(itemCount: count), PopupStyle.minimumPanelHeight)
+    }
+
     func hide() {
-        if settings.popupPosition == .lastPosition {
-            settings.lastWindowOrigin = NSPoint(x: listMinX(in: panel.frame), y: panel.frame.origin.y)
-        }
+        // A coalesced resize firing on a hidden panel would jump it on reopen.
+        resizeCoalesceTask?.cancel()
+        resizeCoalesceTask = nil
+        pendingItemCount = nil
         previewLeading = false
         anchoredListMinX = nil
-        setPanelFrame(
-            NSRect(
-                origin: panel.frame.origin,
-                size: NSSize(width: PopupStyle.defaultWidth, height: panel.frame.height)
-            ),
-            display: false
-        )
         panel.orderOut(nil)
         cleanupAfterHide()
     }
@@ -161,6 +162,20 @@ final class HistoryPanelController {
     }
 
     func resizeForContent(itemCount: Int) {
+        // Coalesce resize requests (Maccy pattern): several state changes in one
+        // SwiftUI update would otherwise fire competing setFrames = visible jump.
+        pendingItemCount = itemCount
+        guard resizeCoalesceTask == nil else { return }
+        resizeCoalesceTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(10))
+            resizeCoalesceTask = nil
+            guard let count = pendingItemCount else { return }
+            pendingItemCount = nil
+            applyContentResize(itemCount: count)
+        }
+    }
+
+    private func applyContentResize(itemCount: Int) {
         let geo = previewGeometry(in: panel.frame)
         let expanded = previewLeading || abs(panel.frame.width - (geo.listW + geo.previewW)) < 2
         let size = NSSize(
@@ -197,11 +212,13 @@ final class HistoryPanelController {
             height: current.height
         )
 
+        let origin: NSPoint
         guard expanded else {
             previewLeading = false
-            var origin = NSPoint(x: geo.listX, y: current.minY)
-            origin.y = WindowGeometry.clampY(origin.y, size: size, visible: visible)
+            var collapsed = NSPoint(x: geo.listX, y: current.minY)
+            collapsed.y = WindowGeometry.clampY(collapsed.y, size: size, visible: visible)
             anchoredListMinX = geo.listX
+            origin = collapsed
             setPanelFrame(NSRect(origin: origin, size: size), display: true)
             return false
         }
@@ -212,10 +229,10 @@ final class HistoryPanelController {
         let fitsRight = spaceRight >= geo.previewW - 0.5
         previewLeading = (fitsLeft == fitsRight) ? spaceLeft > spaceRight : fitsLeft
 
-        var origin = NSPoint(x: geo.originX(expanded: true, leading: previewLeading), y: current.minY)
-        origin = constrainPreservingList(origin, listMinX: geo.listX, size: size)
-        anchoredListMinX = listMinX(in: NSRect(origin: origin, size: size))
-        setPanelFrame(NSRect(origin: origin, size: size), display: true)
+        var expandedOrigin = NSPoint(x: geo.originX(expanded: true, leading: previewLeading), y: current.minY)
+        expandedOrigin = constrainPreservingList(expandedOrigin, listMinX: geo.listX, size: size)
+        anchoredListMinX = listMinX(in: NSRect(origin: expandedOrigin, size: size))
+        setPanelFrame(NSRect(origin: expandedOrigin, size: size), display: true)
         return previewLeading
     }
 
@@ -244,6 +261,8 @@ final class HistoryPanelController {
     }
 
     private func setPanelFrame(_ frame: NSRect, display: Bool) {
+        // Instant everywhere: animated resizes fought across show/content/preview
+        // paths and read as jumping; instant is also snappiest for a utility popup.
         panel.setFrame(frame, display: display, animate: false)
         PanelChrome.applyRoundedCorners(to: panel, radius: PopupStyle.panelCornerRadius)
     }
@@ -254,38 +273,14 @@ final class HistoryPanelController {
     }
 
     private func resolvedAnchor(from requested: PanelAnchor) -> PanelAnchor {
-        switch settings.popupPosition {
-        case .statusItem: return .statusItem
-        case .cursor: return requested == .statusItem ? .statusItem : .cursor
-        case .window, .center, .lastPosition: return .cursor
-        }
+        settings.popupPosition == .statusItem ? .statusItem : requested
     }
 
     private func position(using anchor: PanelAnchor) {
         let size = panel.frame.size
-        let origin: NSPoint = switch settings.popupPosition {
-        case .cursor:
-            anchor == .statusItem ? originNearStatusItem(size: size) : originNearCursor(size: size)
-        case .statusItem:
-            originNearStatusItem(size: size)
-        case .center:
-            WindowGeometry.originCentered(in: NSScreen.main?.visibleFrame, size: size) {
-                self.originNearCursor(size: size)
-            }
-        case .window:
-            WindowGeometry.originCentered(
-                in: WindowGeometry.frontmostWindowFrame() ?? NSScreen.main?.visibleFrame,
-                size: size
-            ) { self.originNearCursor(size: size) }
-        case .lastPosition where settings.lastWindowOrigin != .zero:
-            WindowGeometry.constrain(
-                origin: settings.lastWindowOrigin,
-                size: size,
-                to: WindowGeometry.screenContaining(settings.lastWindowOrigin)
-            )
-        case .lastPosition:
-            originNearCursor(size: size)
-        }
+        let origin: NSPoint = anchor == .statusItem
+            ? originNearStatusItem(size: size)
+            : originNearCursor(size: size)
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
     }
 

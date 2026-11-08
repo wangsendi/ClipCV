@@ -54,6 +54,20 @@ final class ClipboardMonitor {
         content: String?,
         pinKey: String?
     ) -> ApplyEditResult {
+        // A rejected key must leave the item's alias and contents unchanged.
+        var validatedPinKey: String?
+        if item.pinned {
+            let trimmed = pinKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !trimmed.isEmpty {
+                guard let key = HotkeyFormatting.normalizePinKey(trimmed) else { return .pinKeyInvalid }
+                let taken = fetchAll().contains {
+                    $0.identifier != item.identifier && $0.pinned && $0.pinKey == key
+                }
+                if taken { return .pinKeyTaken }
+                validatedPinKey = key
+            }
+        }
+
         item.alias = alias.trimmingCharacters(in: .whitespacesAndNewlines)
         if let content {
             item.storedContents.forEach(context.delete)
@@ -63,20 +77,7 @@ final class ClipboardMonitor {
                 item.title = ClipboardRules.title(for: [payload])
             }
         }
-        if item.pinned {
-            let trimmed = pinKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if trimmed.isEmpty {
-                item.pinKey = nil
-            } else if let key = HotkeyFormatting.normalizePinKey(trimmed) {
-                let taken = fetchAll().contains {
-                    $0.identifier != item.identifier && $0.pinned && $0.pinKey == key
-                }
-                if taken { return .pinKeyTaken }
-                item.pinKey = key
-            } else {
-                return .pinKeyInvalid
-            }
-        }
+        if item.pinned { item.pinKey = validatedPinKey }
         save()
         return .saved
     }

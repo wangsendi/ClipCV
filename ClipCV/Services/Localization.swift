@@ -51,7 +51,6 @@ enum L10n {
         case accessibility, authorized, unauthorized, requestPermission, systemSettings
         case accessibilityFooter
         case popupAt, pinTo, imageHeightLabel, highlightMatches
-        case resetLastPosition
         case showSpecialSymbols, showMenuIcon, showRecentCopyInMenuBar
         case showSearchField, showTitleBeforeSearch, showApplicationIcons
         case showHexColorSwatch, showFooter, footerHiddenWarning
@@ -71,7 +70,7 @@ enum L10n {
         case iCloudRestartTitle, iCloudRestartMessage, iCloudRestartNow, iCloudRestartLater
         case iCloudActiveOn, iCloudActiveOff, iCloudPendingRestart
         case searchExact, searchFuzzy, searchRegex, searchMixed
-        case popupCursor, popupStatusItem, popupWindow, popupCenter, popupLast
+        case popupCursor, popupStatusItem
         case pinTop, pinBottom
         case sortLastCopied, sortFirstCopied, sortNumberOfCopies
         case highlightBold, highlightItalic, highlightUnderline, highlightColor
@@ -91,6 +90,7 @@ enum L10n {
         case categoryFile, categoryColor, categoryPinned
         case richTextTitle, clipboardContent
         case filterByApp
+        case totalCountHelp
         case pinKeyOrder
         case pinnedKeyOrderHelp
     }
@@ -141,7 +141,6 @@ enum L10n {
         .pinTo: "置顶到",
         .imageHeightLabel: "图片高度：",
         .highlightMatches: "高亮匹配",
-        .resetLastPosition: "重置最后位置",
         .showSpecialSymbols: "显示特殊符号",
         .showMenuIcon: "显示菜单栏图标",
         .showRecentCopyInMenuBar: "在菜单栏图标旁显示剪贴板内容",
@@ -202,9 +201,6 @@ enum L10n {
         .searchMixed: "混合",
         .popupCursor: "光标",
         .popupStatusItem: "菜单栏图标",
-        .popupWindow: "窗口中心",
-        .popupCenter: "屏幕中央",
-        .popupLast: "最后位置",
         .pinTop: "顶部",
         .pinBottom: "底部",
         .sortLastCopied: "上次复制时间",
@@ -288,6 +284,7 @@ enum L10n {
         .categoryColor: "颜色",
         .categoryPinned: "固定",
         .filterByApp: "来自 %@",
+        .totalCountHelp: "历史总条数",
         .pinKeyOrder: "固定顺序：",
     ]
 
@@ -328,7 +325,6 @@ enum L10n {
         .pinTo: "Pin to",
         .imageHeightLabel: "Image height:",
         .highlightMatches: "Highlight matches",
-        .resetLastPosition: "Reset last position",
         .showSpecialSymbols: "Show special symbols",
         .showMenuIcon: "Show menu bar icon",
         .showRecentCopyInMenuBar: "Show recent copy next to menu icon",
@@ -389,9 +385,6 @@ enum L10n {
         .searchMixed: "Mixed",
         .popupCursor: "Cursor",
         .popupStatusItem: "Menu bar icon",
-        .popupWindow: "Window center",
-        .popupCenter: "Screen center",
-        .popupLast: "Last position",
         .pinTop: "Top",
         .pinBottom: "Bottom",
         .sortLastCopied: "Last copied at",
@@ -475,6 +468,7 @@ enum L10n {
         .categoryColor: "Color",
         .categoryPinned: "Pinned",
         .filterByApp: "From %@",
+        .totalCountHelp: "Total history items",
         .pinKeyOrder: "Pinned order:",
     ]
 }

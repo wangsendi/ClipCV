@@ -60,6 +60,7 @@ struct HistoryTypeBar: View {
     @Binding var selection: HistoryTypeFilter
     @Binding var sourceApp: String?
     var apps: [String]
+    var totalCount: Int
 
     var body: some View {
         VStack(spacing: 2) {
@@ -70,6 +71,12 @@ struct HistoryTypeBar: View {
                 iconButton(HistoryTypeFilter.pinned.systemImage, selected: selection == .pinned, help: L10n.t(.categoryPinned)) {
                     selection = .pinned
                 }
+                Text(verbatim: "\(totalCount)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+                    .padding(.leading, 4)
+                    .help(L10n.t(.totalCountHelp))
                 Spacer(minLength: 4)
                 ForEach(HistoryTypeFilter.contentTypes) { filter in
                     iconButton(filter.systemImage, selected: selection == filter, help: filter.title) {

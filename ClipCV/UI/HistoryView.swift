@@ -28,8 +28,6 @@ struct HistoryView: View {
     @State private var sourceAppFilter: String?
     @State private var pendingSelectionID: UUID?
     @State private var keyboardNavigating = false
-    @State private var hoverLockMousePoint: NSPoint?
-    @State private var pendingHoverIndex: Int?
     @State private var scrollToID: UUID?
     @State private var mouseMoveMonitor: Any?
     @State private var isPreviewEditing = false
@@ -40,14 +38,17 @@ struct HistoryView: View {
         matchingFilters(items.filter(\.pinned)).sorted { $0.pinOrder < $1.pinOrder }
     }
     private var unpinnedFiltered: [ClipboardItem] {
-        matchingFilters(items.filter { !$0.pinned }).sorted(by: sortUnpinned)
+        let matching = matchingFilters(items.filter { !$0.pinned })
+        // The query already supplies last-copied order; navigation must not sort it again.
+        return settings.sortMode == .lastCopiedAt ? matching : matching.sorted(by: sortUnpinned)
     }
     private var canReorderPins: Bool { query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     private var filtered: [ClipboardItem] {
         settings.pinTo == .top ? pinnedItems + unpinnedFiltered : unpinnedFiltered + pinnedItems
     }
     private var selectedItem: ClipboardItem? {
-        filtered.indices.contains(selectedIndex) ? filtered[selectedIndex] : nil
+        let current = filtered
+        return current.indices.contains(selectedIndex) ? current[selectedIndex] : nil
     }
     private var selectedItems: [ClipboardItem] {
         filtered.filter { selectedIDs.contains($0.identifier) }
@@ -75,7 +76,15 @@ struct HistoryView: View {
                     previewColumn(item)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Edge-pin the oversized content so the window (not the list) absorbs the
+            // preview expand/collapse: the preview column is revealed/clipped by the
+            // window edge while the list stays pixel-fixed.
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: actions.previewLeading ? .trailing : .leading
+            )
+            .clipped()
         }
         .onChange(of: isPreviewEditing) { _, editing in
             actions.setSuppressAutoClose(editing)
@@ -110,8 +119,25 @@ struct HistoryView: View {
             moveSelection(1, wrap: true)
             scheduleAutoPreview()
         }
-        .onChange(of: filtered.count) { _, count in handleFilteredCountChange(count) }
-        .onChange(of: items.map(\.pinned)) { _, _ in resolvePendingSelection() }
+        .onChange(of: filtered.count) { oldCount, count in
+            if count == 0 {
+                selectedIndex = 0
+                selectedIDs = []
+                setPreviewVisible(false, pinned: false)
+            } else if selectedIndex >= count {
+                selectIndex(count - 1, scroll: true, lockHover: true)
+            }
+            actions.resizePanelForContent(count)
+            actions.resizePanelForPreview(previewVisible && selectedItem != nil)
+        }
+        // After pin/unpin the item moves between sections; restore selection to it.
+        .onChange(of: items.map(\.pinned)) { _, _ in
+            guard let id = pendingSelectionID,
+                  let index = filtered.firstIndex(where: { $0.identifier == id })
+            else { return }
+            selectIndex(index, scroll: true, lockHover: true)
+            pendingSelectionID = nil
+        }
         .confirmationDialog(L10n.t(.clearUnpinned), isPresented: $confirmClearUnpinned) {
             Button(L10n.t(.clearUnpinned), role: .destructive) { actions.clear(false) }
             Button(L10n.t(.cancel), role: .cancel) {}
@@ -124,26 +150,6 @@ struct HistoryView: View {
         } message: {
             Text(L10n.t(.clearEverythingConfirm))
         }
-    }
-
-    private func handleFilteredCountChange(_ count: Int) {
-        if count == 0 {
-            selectedIndex = 0
-            selectedIDs = []
-            setPreviewVisible(false, pinned: false)
-        } else if selectedIndex >= count {
-            selectIndex(count - 1, scroll: true, lockHover: true)
-        }
-        actions.resizePanelForContent(filtered.count)
-        actions.resizePanelForPreview(previewVisible && selectedItem != nil)
-    }
-
-    private func resolvePendingSelection() {
-        guard let id = pendingSelectionID,
-              let index = filtered.firstIndex(where: { $0.identifier == id })
-        else { return }
-        selectIndex(index, scroll: true, lockHover: true)
-        pendingSelectionID = nil
     }
 
     private func previewColumn(_ item: ClipboardItem) -> some View {
@@ -183,7 +189,7 @@ struct HistoryView: View {
 
             Divider()
                 .padding(.horizontal, PopupStyle.horizontalPadding + 4)
-            HistoryTypeBar(selection: $category, sourceApp: $sourceAppFilter, apps: sourceApps)
+            HistoryTypeBar(selection: $category, sourceApp: $sourceAppFilter, apps: sourceApps, totalCount: items.count)
                 .padding(.horizontal, PopupStyle.horizontalPadding + 4)
                 .padding(.bottom, PopupStyle.verticalPadding)
                 .fixedSize(horizontal: false, vertical: true)
@@ -239,8 +245,8 @@ struct HistoryView: View {
     }
 
     private var unpinnedScroll: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
+        ScrollView {
+            ScrollViewReader { proxy in
                 LazyVStack(spacing: 0) {
                     itemRows(
                         unpinnedFiltered,
@@ -254,12 +260,12 @@ struct HistoryView: View {
                         : PopupStyle.verticalSeparatorPadding
                 )
                 .padding(.bottom, PopupStyle.verticalSeparatorPadding)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .onChange(of: scrollToID) { _, id in
-                guard let id else { return }
-                proxy.scrollTo(id, anchor: .center)
-                scrollToID = nil
+                // Keep visible rows stationary and avoid animation lag during key repeats.
+                .onChange(of: scrollToID) { _, id in
+                    guard let id else { return }
+                    proxy.scrollTo(id)
+                    scrollToID = nil
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -358,17 +364,23 @@ struct HistoryView: View {
         ForEach(Array(sectionItems.enumerated()), id: \.element.identifier) { offset, item in
             let index = baseIndex + offset
             HistoryItemDragContainer(
-                makeSnapshots: { dragSnapshots(for: item) },
+                makeSnapshots: {
+                    // Dragging a multi-selected row drags the whole selection.
+                    let group = selectedIDs.count > 1 && selectedIDs.contains(item.identifier)
+                        ? selectedItems : [item]
+                    return group.compactMap { DesktopPinSnapshot.make(from: $0) }
+                },
                 reorderID: reorderable ? item.identifier : nil,
                 onActivate: { handleRowActivate(item, index: index) },
                 onHover: { hovering in
                     guard hovering else { return }
-                    if keyboardNavigating {
-                        pendingHoverIndex = index
-                    } else if !commandHeld, selectedIDs.count <= 1 {
-                        selectedIndex = index
-                        selectedIDs = [item.identifier]
-                    }
+                    // While keyboard-navigating, hover is ignored until a real mouse
+                    // move unlocks it; afterwards the hovered row takes over directly.
+                    guard !keyboardNavigating, !commandHeld, selectedIDs.count <= 1 else { return }
+                    // Hover selection never scrolls (Maccy selectWithoutScrolling):
+                    // scrolling here would fight the keyboard-driven scroll target.
+                    selectedIndex = index
+                    selectedIDs = [item.identifier]
                 },
                 onReorder: reorderable ? { actions.reorderPin($0, item.identifier) } : nil,
                 onHidePanelForDrag: { actions.hideForDrag() },
@@ -378,7 +390,7 @@ struct HistoryView: View {
                     item: item,
                     isSelected: selectedIDs.contains(item.identifier)
                         || (selectedIDs.isEmpty && selectedIndex == index),
-                    shortcut: shortcutLabel(for: item),
+                    shortcut: shortcutLabel(for: item, slot: offset),
                     query: query
                 )
             }
@@ -401,18 +413,15 @@ struct HistoryView: View {
     }
 
     private func selectIndex(_ index: Int, scroll: Bool, lockHover: Bool) {
-        guard filtered.indices.contains(index) || (index == 0 && filtered.isEmpty) else { return }
+        let current = filtered
+        guard current.indices.contains(index) || (index == 0 && current.isEmpty) else { return }
         if lockHover {
             keyboardNavigating = true
-            hoverLockMousePoint = NSEvent.mouseLocation
-            pendingHoverIndex = nil
         }
         selectedIndex = index
-        selectedIDs = filtered.indices.contains(index) ? [filtered[index].identifier] : []
-        guard scroll, filtered.indices.contains(index) else { return }
-        let id = filtered[index].identifier
-        guard unpinnedFiltered.contains(where: { $0.identifier == id }) else { return }
-        scrollToID = id
+        selectedIDs = current.indices.contains(index) ? [current[index].identifier] : []
+        guard scroll, current.indices.contains(index), !current[index].pinned else { return }
+        scrollToID = current[index].identifier
     }
 
     private func handleRowActivate(_ item: ClipboardItem, index: Int) {
@@ -438,12 +447,6 @@ struct HistoryView: View {
         selectedIDs = [item.identifier]
         selectedIndex = index
         activate(item, option: optionHeld, shift: shiftHeld)
-    }
-
-    private func dragSnapshots(for item: ClipboardItem) -> [DesktopPinSnapshot] {
-        let group = selectedIDs.count > 1 && selectedIDs.contains(item.identifier)
-            ? selectedItems : [item]
-        return group.compactMap { DesktopPinSnapshot.make(from: $0) }
     }
 
     private func setPreviewVisible(_ visible: Bool, pinned: Bool) {
@@ -472,10 +475,11 @@ struct HistoryView: View {
 
     private func matchingFilters(_ source: [ClipboardItem]) -> [ClipboardItem] {
         let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return source
-            .filter { category.matches($0) }
-            .filter { sourceAppFilter == nil || $0.sourceApp == sourceAppFilter }
-            .filter { keyword.isEmpty || SearchService.matches($0, query: keyword, mode: settings.searchMode) }
+        return source.filter {
+            category.matches($0)
+                && (sourceAppFilter == nil || $0.sourceApp == sourceAppFilter)
+                && (keyword.isEmpty || SearchService.matches($0, query: keyword, mode: settings.searchMode))
+        }
     }
 
     private func sortUnpinned(_ lhs: ClipboardItem, _ rhs: ClipboardItem) -> Bool {
@@ -489,7 +493,7 @@ struct HistoryView: View {
         }
     }
 
-    private func shortcutLabel(for item: ClipboardItem) -> String? {
+    private func shortcutLabel(for item: ClipboardItem, slot: Int) -> String? {
         if item.pinned, let pinKey = item.pinKey {
             return HotkeyFormatting.decoratedShortcut(
                 key: pinKey,
@@ -500,9 +504,7 @@ struct HistoryView: View {
             )
         }
         let order = Array(settings.unpinnedKeyOrder)
-        guard let slot = unpinnedFiltered.firstIndex(where: { $0.identifier == item.identifier }),
-              order.indices.contains(slot)
-        else { return nil }
+        guard !item.pinned, order.indices.contains(slot) else { return nil }
         return HotkeyFormatting.decoratedShortcut(
             key: String(order[slot]),
             prefix: settings.unpinnedShortcutPrefix,
@@ -544,14 +546,15 @@ struct HistoryView: View {
 
     private func historyShortcutTarget(for keyCode: UInt16) -> (ClipboardItem, ShortcutModifierPrefix)? {
         guard let name = HotkeyFormatting.keyName(for: keyCode) else { return nil }
-        if let item = filtered.first(where: { $0.pinned && $0.pinKey == name }) {
+        if let item = pinnedItems.first(where: { $0.pinKey == name }) {
             return (item, settings.pinnedShortcutPrefix)
         }
         let order = Array(settings.unpinnedKeyOrder)
+        let unpinned = unpinnedFiltered
         guard let index = order.firstIndex(of: Character(name)),
-              unpinnedFiltered.indices.contains(index)
+              unpinned.indices.contains(index)
         else { return nil }
-        return (unpinnedFiltered[index], settings.unpinnedShortcutPrefix)
+        return (unpinned[index], settings.unpinnedShortcutPrefix)
     }
 
     private func moveSelection(_ delta: Int, wrap: Bool = false) {
@@ -560,6 +563,7 @@ struct HistoryView: View {
         let next = wrap
             ? (selectedIndex + delta % count + count) % count
             : min(max(selectedIndex + delta, 0), count - 1)
+        guard next != selectedIndex else { return }
         selectIndex(next, scroll: true, lockHover: true)
     }
 
@@ -589,27 +593,12 @@ struct HistoryView: View {
             }
             return event
         }
+        // Maccy-style: any real mouse movement unlocks hover instantly — the
+        // hovered row takes over via its own next hover event, no jump, no scroll.
         mouseMoveMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { event in
-            MainActor.assumeIsolated { self.unlockHoverIfMouseMoved() }
+            MainActor.assumeIsolated { self.keyboardNavigating = false }
             return event
         }
-    }
-
-    private func unlockHoverIfMouseMoved() {
-        guard keyboardNavigating else { return }
-        let point = NSEvent.mouseLocation
-        if let origin = hoverLockMousePoint {
-            let dx = point.x - origin.x
-            let dy = point.y - origin.y
-            guard (dx * dx + dy * dy) >= 36 else { return }
-        }
-        keyboardNavigating = false
-        hoverLockMousePoint = nil
-        if let pending = pendingHoverIndex, filtered.indices.contains(pending) {
-            selectedIndex = pending
-            selectedIDs = [filtered[pending].identifier]
-        }
-        pendingHoverIndex = nil
     }
 
     private func removeMonitors() {
@@ -619,6 +608,11 @@ struct HistoryView: View {
     }
 
     private func handleKey(keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
+        // Self-heal cached modifier state: every keyDown carries live flags, so a
+        // missed flagsChanged (panel hidden during key-up) can't stick forever.
+        optionHeld = flags.contains(.option)
+        shiftHeld = flags.contains(.shift)
+        commandHeld = flags.contains(.command)
         if isPreviewEditing {
             if keyCode == 53 {
                 isPreviewEditing = false
@@ -760,7 +754,10 @@ private extension HistoryView {
             moveSelection(shift ? -1 : 1, wrap: true); return true
         case 36, 76:
             guard !command, !control, let item = selectedItem else { return false }
-            activate(item, option: optionHeld, shift: shiftHeld)
+            // Use this event's live flags, not cached optionHeld/shiftHeld — the
+            // flagsChanged monitor misses key-ups that happen while the panel is
+            // closed, which left stale true values and fired paste (AX prompt).
+            activate(item, option: option, shift: shift)
             return true
         default:
             return false

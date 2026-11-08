@@ -90,6 +90,7 @@ private final class DesktopPinPanel: NSPanel {
             defer: false
         )
         identifier = NSUserInterfaceItemIdentifier("wangsendi.ClipCV.desktopPin.\(id.uuidString)")
+        title = snapshot.title
         isFloatingPanel = true
         level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
@@ -371,10 +372,11 @@ private struct DesktopPinView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.tertiary)
                 .padding(.leading, 8)
-            Text(titleHint)
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
+            Text(snapshot.title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .truncationMode(.middle)
             Spacer(minLength: 0)
             Button(action: onClose) {
                 Image(systemName: "xmark.circle.fill")
@@ -387,26 +389,15 @@ private struct DesktopPinView: View {
         .background(WindowMoveHandle())
     }
 
-    private var titleHint: String {
-        let action: String = switch snapshot {
-        case .text: L10n.t(.selectThenDragHint)
-        case .image, .file: L10n.t(.dragToInsertHint)
-        }
-        return "\(L10n.t(.pinToDesktop)) · \(action) · \(L10n.t(.pinToDesktopSession))"
-    }
-
     @ViewBuilder
     private var bodyContent: some View {
         switch snapshot {
         case .text(let text):
             PinSelectableTextView(text: text)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .image(_, let preview):
+        case .image(let data, let preview):
             dragOverlay {
-                Image(nsImage: preview)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                DesktopPinImageView(data: data, preview: preview)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .allowsHitTesting(false)
             }
@@ -442,6 +433,34 @@ private struct DesktopPinView: View {
         ZStack(alignment: .topLeading) {
             PinContentDragHandle(snapshot: snapshot)
             content()
+        }
+    }
+}
+
+private struct DesktopPinImageView: View {
+    let data: Data
+    let preview: NSImage
+    @Environment(\.displayScale) private var displayScale
+    @State private var displayImage: NSImage?
+
+    var body: some View {
+        GeometryReader { geometry in
+            let pixelSide = max(1, Int(ceil(max(geometry.size.width, geometry.size.height) * displayScale)))
+            Image(nsImage: displayImage ?? preview)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .task(id: pixelSide) {
+                    // Decode after resizing settles so full-resolution work stays off the drag path.
+                    try? await Task.sleep(for: .milliseconds(80))
+                    guard !Task.isCancelled else { return }
+                    let image = await Task.detached(priority: .userInitiated) { [data] in
+                        ThumbnailCache.make(from: data, maxSide: CGFloat(pixelSide))
+                    }.value
+                    guard !Task.isCancelled, let image else { return }
+                    displayImage = image
+                }
         }
     }
 }

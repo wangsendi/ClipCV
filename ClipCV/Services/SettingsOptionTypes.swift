@@ -19,15 +19,12 @@ enum SearchMode: String, CaseIterable, Identifiable {
 }
 
 enum PopupPositionSetting: String, CaseIterable, Identifiable {
-    case cursor, statusItem, window, center, lastPosition
+    case cursor, statusItem
     var id: Self { self }
     var title: String {
         switch self {
         case .cursor: L10n.t(.popupCursor)
         case .statusItem: L10n.t(.popupStatusItem)
-        case .window: L10n.t(.popupWindow)
-        case .center: L10n.t(.popupCenter)
-        case .lastPosition: L10n.t(.popupLast)
         }
     }
 }

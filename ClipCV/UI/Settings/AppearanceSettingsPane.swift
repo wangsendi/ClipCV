@@ -26,18 +26,6 @@ struct AppearanceSettingsPane: View {
                                 Text(position.title).tag(position)
                             }
                         }
-
-                        if settings.popupPosition == .lastPosition {
-                            Button {
-                                settings.resetLastPosition()
-                            } label: {
-                                Image(systemName: "arrow.uturn.backward.circle.fill")
-                                    .symbolRenderingMode(.hierarchical)
-                                    .imageScale(.large)
-                            }
-                            .buttonStyle(.borderless)
-                            .help(L10n.t(.resetLastPosition))
-                        }
                     }
                 }
 

@@ -8,9 +8,17 @@ import Foundation
 
 enum DesktopPinSnapshot {
     case text(String)
-    /// `data` keeps fidelity for insert; `preview` is a small bitmap for UI only.
+    /// Keep original bytes for display and insertion; the small preview makes dragging immediate.
     case image(data: Data, preview: NSImage)
     case file(name: String, path: String)
+
+    var title: String {
+        switch self {
+        case .text: L10n.t(.categoryText)
+        case .image: L10n.t(.categoryImage)
+        case .file(let name, _): name
+        }
+    }
 
     var previewImage: NSImage? {
         if case .image(_, let preview) = self { return preview }

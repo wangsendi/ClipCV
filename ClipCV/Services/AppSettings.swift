@@ -112,12 +112,6 @@ final class AppSettings {
     var iCloudSyncEnabled = false {
         didSet { defaults.set(iCloudSyncEnabled, forKey: Key.iCloudSyncEnabled) }
     }
-    var lastWindowOrigin: CGPoint = .zero {
-        didSet {
-            defaults.set(lastWindowOrigin.x, forKey: Key.lastWindowOriginX)
-            defaults.set(lastWindowOrigin.y, forKey: Key.lastWindowOriginY)
-        }
-    }
     var hotkey: Hotkey = .popupDefault {
         didSet { store(hotkey, Key.hotkeyKeyCode, Key.hotkeyModifiers); onHotkeyChanged?(hotkey) }
     }
@@ -226,12 +220,6 @@ final class AppSettings {
         clearOnQuit = defaults.bool(forKey: Key.clearOnQuit)
         clearSystemClipboard = defaults.bool(forKey: Key.clearSystemClipboard)
         iCloudSyncEnabled = defaults.bool(forKey: Key.iCloudSyncEnabled)
-        if defaults.object(forKey: Key.lastWindowOriginX) != nil {
-            lastWindowOrigin = CGPoint(
-                x: defaults.double(forKey: Key.lastWindowOriginX),
-                y: defaults.double(forKey: Key.lastWindowOriginY)
-            )
-        }
         hotkey = loadHotkey(Key.hotkeyKeyCode, Key.hotkeyModifiers, fallback: .popupDefault)
         pinHotkey = loadHotkey(Key.pinKeyCode, Key.pinModifiers, fallback: .pinDefault)
         deleteHotkey = loadHotkey(Key.deleteKeyCode, Key.deleteModifiers, fallback: .deleteDefault)
@@ -359,8 +347,6 @@ final class AppSettings {
         }
     }
 
-    func resetLastPosition() { lastWindowOrigin = .zero }
-
     private func setStorageGroup(_ types: Set<String>, enabled: Bool) {
         var next = enabledTypes
         if enabled { next.formUnion(types) } else { next.subtract(types) }
@@ -431,8 +417,6 @@ final class AppSettings {
         static let showFooter = "showFooter"
         static let clearOnQuit = "clearOnQuit"
         static let clearSystemClipboard = "clearSystemClipboard"
-        static let lastWindowOriginX = "lastWindowOriginX"
-        static let lastWindowOriginY = "lastWindowOriginY"
         static let hotkeyKeyCode = "hotkeyKeyCode"
         static let hotkeyModifiers = "hotkeyModifiers"
         static let pinKeyCode = "pinKeyCode"
