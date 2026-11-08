@@ -9,7 +9,12 @@ import Foundation
 @MainActor
 @Observable
 final class AppSettings {
-    static let shared = AppSettings()
+    // Test launch arguments must never be persisted into the user's normal settings.
+    static let shared = AppSettings(
+        defaults: AppRuntime.isRunningTests
+            ? UserDefaults(suiteName: "wangsendi.ClipCV.tests.\(ProcessInfo.processInfo.processIdentifier)")!
+            : .standard
+    )
 
     static let defaultIgnoredPasteboardTypes: Set<String> = [
         "Pasteboard generator type",

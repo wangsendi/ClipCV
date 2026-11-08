@@ -23,7 +23,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeys: HotkeyManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hosted tests must not start clipboard capture or open the user's database.
+        guard !AppRuntime.isRunningTests else { return }
         NSApp.setActivationPolicy(.accessory)
+        // A relaunch must release the old store before enabling sync on the same file.
+        Task { @MainActor [weak self] in
+            if let value = ProcessInfo.processInfo.environment["CLIPCV_RELAUNCH_PID"],
+               let pid = Int32(value),
+               pid != ProcessInfo.processInfo.processIdentifier,
+               let previous = NSRunningApplication(processIdentifier: pid),
+               previous.bundleIdentifier == Bundle.main.bundleIdentifier {
+                while !previous.isTerminated {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+            }
+            self?.startServices()
+        }
+    }
+
+    private func startServices() {
         let settings = AppSettings.shared
         let monitor = ClipboardMonitor(context: AppRuntime.container.mainContext, settings: settings)
         AppRuntime.monitor = monitor

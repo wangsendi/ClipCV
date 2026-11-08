@@ -33,7 +33,7 @@ xattr -d com.apple.quarantine /Applications/ClipCV.app
 文本、链接、RTF/HTML 富文本、PNG/TIFF 图片、文件路径。可在 **设置 → 存储** 按类型开关。
 
 ### iCloud 同步如何工作？
-**设置 → 高级** 中开启（需 Apple ID 登录 iCloud）。历史通过 CloudKit 在你的多台 Mac 间同步，更改后需重启 App 生效。默认关闭。
+**设置 → 高级** 中开启（需 Apple ID 登录 iCloud）。历史通过 CloudKit 在你的多台 Mac 间同步，更改后需重启 App 生效。开启和关闭使用同一个本机数据库，关闭同步仍会继续记录，历史不会因切换开关而消失。默认关闭。
 
 ## 更新
 

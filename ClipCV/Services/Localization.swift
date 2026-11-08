@@ -62,13 +62,13 @@ enum L10n {
         case ignoreAllAppsExceptListed, ignoredAppsDescription
         case ignoredPasteboardTypesDescription, ignoredRegexpsDescription
         case reset, add
-        case pause, pauseDescription
+        case pause
         case clearHistoryOnQuit, clearSystemClipboard
         case clearUnpinnedNow, clearEverythingNow, clearHelp
         case clearUnpinnedConfirm, clearEverythingConfirm
-        case iCloud, iCloudSync, iCloudSyncDescription, iCloudUnavailable
+        case iCloud, iCloudSync, iCloudUnavailable
         case iCloudRestartTitle, iCloudRestartMessage, iCloudRestartNow, iCloudRestartLater
-        case iCloudActiveOn, iCloudActiveOff, iCloudPendingRestart
+        case iCloudPendingRestart
         case searchExact, searchFuzzy, searchRegex, searchMixed
         case popupCursor, popupStatusItem
         case pinTop, pinBottom
@@ -176,7 +176,6 @@ enum L10n {
         .reset: "重置",
         .add: "添加",
         .pause: "暂停",
-        .pauseDescription: "暂停记录新的剪贴板项目。也可 ⌥ 点击菜单栏图标；⌥⇧ 点击可忽略下一次复制。\n\ndefaults write wangsendi.ClipCV paused true\n# 复制敏感内容后\ndefaults write wangsendi.ClipCV paused false",
         .clearHistoryOnQuit: "退出时清除历史记录",
         .clearSystemClipboard: "同时清除系统剪贴板",
         .clearUnpinnedNow: "立即清空未固定",
@@ -186,15 +185,12 @@ enum L10n {
         .clearEverythingConfirm: "删除全部历史记录（含固定项）？此操作无法撤销。",
         .iCloud: "iCloud",
         .iCloudSync: "通过 iCloud 同步历史",
-        .iCloudSyncDescription: "同步剪贴板历史与固定状态到同一 Apple ID 的其他设备（含日后的 iOS）。本机库与 iCloud 库是两套独立存储，开关不会自动合并历史。非实时，通常延迟数秒到数十秒。更改后需重启应用生效。大图片/文件可能因体积限制无法完整同步。",
-        .iCloudUnavailable: "当前未登录 iCloud，或本机不可用。登录系统设置 → Apple ID 后再开启。",
+        .iCloudUnavailable: "iCloud 不可用，请检查系统账户设置。",
         .iCloudRestartTitle: "需要重启",
-        .iCloudRestartMessage: "切换后将使用另一套独立历史库（本机 ↔ iCloud 不会自动合并）。设置在下次启动后生效，现在重启 ClipCV？",
+        .iCloudRestartMessage: "重启后应用 iCloud 设置。",
         .iCloudRestartNow: "立即重启",
         .iCloudRestartLater: "稍后",
-        .iCloudActiveOn: "本次启动：同步已开启",
-        .iCloudActiveOff: "本次启动：仅本机存储",
-        .iCloudPendingRestart: "已保存，重启后生效",
+        .iCloudPendingRestart: "重启后生效",
         .searchExact: "精确",
         .searchFuzzy: "模糊",
         .searchRegex: "正则表达式",
@@ -360,7 +356,6 @@ enum L10n {
         .reset: "Reset",
         .add: "Add",
         .pause: "Pause",
-        .pauseDescription: "Pause recording new clipboard items. You can also ⌥-click the menu icon, or ⌥⇧-click to ignore the next copy.\n\ndefaults write wangsendi.ClipCV paused true\n# after copying sensitive data\ndefaults write wangsendi.ClipCV paused false",
         .clearHistoryOnQuit: "Clear history on quit",
         .clearSystemClipboard: "Also clear system clipboard",
         .clearUnpinnedNow: "Clear Unpinned Now",
@@ -370,15 +365,12 @@ enum L10n {
         .clearEverythingConfirm: "Delete all history including pins? This can’t be undone.",
         .iCloud: "iCloud",
         .iCloudSync: "Sync history via iCloud",
-        .iCloudSyncDescription: "Sync clipboard history and pins to other devices on the same Apple ID (including a future iOS app). Local and iCloud use separate stores—toggling does not merge history. Not realtime—usually seconds to tens of seconds. Restart after changing. Large images/files may not sync fully due to size limits.",
-        .iCloudUnavailable: "iCloud isn’t available. Sign in via System Settings → Apple ID, then enable sync.",
+        .iCloudUnavailable: "iCloud is unavailable. Check your account in System Settings.",
         .iCloudRestartTitle: "Restart required",
-        .iCloudRestartMessage: "Switching uses a separate history store (local ↔ iCloud are not merged). Settings apply on the next launch. Restart ClipCV now?",
+        .iCloudRestartMessage: "Restart to apply iCloud settings.",
         .iCloudRestartNow: "Restart Now",
         .iCloudRestartLater: "Later",
-        .iCloudActiveOn: "This launch: sync is on",
-        .iCloudActiveOff: "This launch: local only",
-        .iCloudPendingRestart: "Saved — restart to apply",
+        .iCloudPendingRestart: "Restart to apply",
         .searchExact: "Exact",
         .searchFuzzy: "Fuzzy",
         .searchRegex: "Regex",

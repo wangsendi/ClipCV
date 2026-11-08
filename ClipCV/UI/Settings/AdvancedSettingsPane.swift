@@ -26,19 +26,11 @@ struct AdvancedSettingsPane: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle(L10n.t(.iCloudSync), isOn: iCloudSyncBinding)
                             .disabled(!iCloudAvailable && !settings.iCloudSyncEnabled)
-                        Text(
-                            AppModelContainer.isCloudKitEnabled
-                                ? L10n.t(.iCloudActiveOn)
-                                : L10n.t(.iCloudActiveOff)
-                        )
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
                         if settings.iCloudSyncEnabled != AppModelContainer.isCloudKitEnabled {
                             Text(L10n.t(.iCloudPendingRestart))
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.orange)
                         }
-                        SettingsFootnote(L10n.t(.iCloudSyncDescription))
                         if !iCloudAvailable {
                             Text(L10n.t(.iCloudUnavailable))
                                 .font(.system(size: 11))
@@ -51,11 +43,7 @@ struct AdvancedSettingsPane: View {
 
             SettingsSection(title: L10n.t(.pause)) {
                 SettingsBlock(indent: false) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle(L10n.t(.pause), isOn: $settings.paused)
-                        SettingsFootnote(L10n.t(.pauseDescription))
-                            .textSelection(.enabled)
-                    }
+                    Toggle(L10n.t(.pauseRecording), isOn: $settings.paused)
                 }
             }
 
@@ -72,7 +60,6 @@ struct AdvancedSettingsPane: View {
                         Toggle(L10n.t(.clearSystemClipboard), isOn: $settings.clearSystemClipboard)
                             .disabled(!settings.clearOnQuit)
                             .opacity(settings.clearOnQuit ? 1 : 0.45)
-                        SettingsFootnote(L10n.t(.clearHelp))
                     }
                 }
             }
@@ -117,7 +104,9 @@ struct AdvancedSettingsPane: View {
         let url = Bundle.main.bundleURL
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in
+        config.environment = ["CLIPCV_RELAUNCH_PID": String(ProcessInfo.processInfo.processIdentifier)]
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
+            guard error == nil else { return }
             DispatchQueue.main.async { NSApp.terminate(nil) }
         }
     }

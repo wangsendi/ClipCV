@@ -12,6 +12,33 @@ import Testing
 
 @MainActor
 struct ClipCVTests {
+    @Test func testRuntimeDoesNotStartCaptureOrOpenDiskStorage() {
+        #expect(AppRuntime.isRunningTests)
+        #expect(AppRuntime.monitor == nil)
+        let usesMemoryStorage = AppRuntime.container.configurations.allSatisfy { $0.isStoredInMemoryOnly }
+        #expect(usesMemoryStorage)
+    }
+
+    @Test func sharedTestSettingsDoNotWriteApplicationPreferences() throws {
+        let domain = try #require(Bundle.main.bundleIdentifier)
+        let defaults = UserDefaults.standard
+        let original = defaults.persistentDomain(forName: domain) ?? [:]
+        let settings = AppSettings.shared
+        let paused = settings.paused
+        let sync = settings.iCloudSyncEnabled
+        defer {
+            settings.paused = paused
+            settings.iCloudSyncEnabled = sync
+        }
+
+        settings.paused.toggle()
+        settings.iCloudSyncEnabled.toggle()
+
+        let current = defaults.persistentDomain(forName: domain) ?? [:]
+        #expect(current["paused"] as? Bool == original["paused"] as? Bool)
+        #expect(current["iCloudSyncEnabled"] as? Bool == original["iCloudSyncEnabled"] as? Bool)
+    }
+
     @Test(arguments: [" w ", "12"])
     func rejectedEditsPreserveStoredItem(pinKey: String) throws {
         let (container, monitor, item) = try makeEditFixture()
@@ -76,5 +103,42 @@ struct ClipCVTests {
         let defaults = try #require(UserDefaults(suiteName: "ClipCVTests.\(UUID().uuidString)"))
         let monitor = ClipboardMonitor(context: context, settings: AppSettings(defaults: defaults))
         return (container, monitor, item)
+    }
+}
+
+@MainActor
+struct ModelContainerTests {
+    @Test func syncConfigurationsUseTheSameStore() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let local = AppModelContainer.configuration(in: directory, sync: false)
+        let cloud = AppModelContainer.configuration(in: directory, sync: true)
+
+        #expect(local.url == cloud.url)
+        #expect(local.cloudKitContainerIdentifier == nil)
+        #expect(cloud.cloudKitContainerIdentifier == AppModelContainer.cloudKitContainerID)
+    }
+
+    @Test func localHistorySurvivesReopeningTheStore() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClipCVTests-\(ProcessInfo.processInfo.processIdentifier)")
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let id = UUID()
+
+        // SwiftData may close SQLite asynchronously; leave fixture cleanup to the system.
+        try autoreleasepool {
+            let container = AppModelContainer.make(in: directory, sync: false)
+            let context = ModelContext(container)
+            context.insert(ClipboardItem(identifier: id, title: "New history"))
+            try context.save()
+        }
+        try autoreleasepool {
+            let reopened = AppModelContainer.make(in: directory, sync: false)
+            let saved = try ModelContext(reopened).fetch(FetchDescriptor<ClipboardItem>())
+            #expect(saved.count == 1)
+            #expect(saved.first?.identifier == id)
+            #expect(saved.first?.title == "New history")
+            #expect(!AppModelContainer.isCloudKitEnabled)
+        }
     }
 }

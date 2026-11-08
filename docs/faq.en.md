@@ -33,7 +33,7 @@ Pinned items get a single-key letter (assigned in `QWEASDZXC` order by default).
 Text, links, RTF/HTML rich text, PNG/TIFF images, and file paths. Each type can be toggled in **Settings → Storage**.
 
 ### How does iCloud sync work?
-Enable it in **Settings → Advanced** (requires an Apple ID signed into iCloud). History syncs across your Macs via CloudKit; a relaunch is needed after changing the setting. Off by default.
+Enable it in **Settings → Advanced** (requires an Apple ID signed into iCloud). History syncs across your Macs via CloudKit; a relaunch is needed after changing the setting. Both settings use the same local database, so disabling sync keeps recording locally and preserves your history. Off by default.
 
 ## Updates
 
