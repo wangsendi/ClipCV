@@ -67,13 +67,13 @@ Copy, switch windows, paste, switch back, paste again — re-copying wastes your
 ## 📥 Install
 
 ### Download
-Grab the latest `ClipCV.zip` from [Releases](https://github.com/wangsendi/ClipCV/releases), unzip, and drag `ClipCV.app` into your Applications folder.
+Grab the latest `ClipCV.zip` from [Releases](https://github.com/wangsendi/ClipCV-MacOs/releases), unzip, and drag `ClipCV.app` into your Applications folder.
 
 > If macOS warns about an unidentified developer on first launch, open **System Settings → Privacy & Security** and click "Open Anyway".
 
 ### Build from source
 ```bash
-git clone https://github.com/wangsendi/ClipCV.git
+git clone https://github.com/wangsendi/ClipCV-MacOs.git
 cd ClipCV
 open ClipCV.xcodeproj
 ```
@@ -104,7 +104,7 @@ ClipCV never uploads your data (the only network access is checking for updates 
 ## 🛠 Build from source
 
 ```bash
-git clone https://github.com/wangsendi/ClipCV.git
+git clone https://github.com/wangsendi/ClipCV-MacOs.git
 cd ClipCV
 xcodebuild -project ClipCV.xcodeproj -scheme ClipCV -configuration Release build
 ```

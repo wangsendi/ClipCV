@@ -11,7 +11,7 @@
 ## Building
 
 ```bash
-git clone https://github.com/wangsendi/ClipCV.git
+git clone https://github.com/wangsendi/ClipCV-MacOs.git
 cd ClipCV
 open ClipCV.xcodeproj   # press ⌘R in Xcode
 ```

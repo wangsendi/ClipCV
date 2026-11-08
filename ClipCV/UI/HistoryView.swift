@@ -84,10 +84,7 @@ struct HistoryView: View {
         .frame(
             minWidth: PopupStyle.listWidth,
             maxWidth: .infinity,
-            minHeight: PopupStyle.preferredHeight(
-                itemCount: filtered.count,
-                imageMaxHeight: settings.imageMaxHeight
-            ),
+            minHeight: PopupStyle.preferredHeight(itemCount: filtered.count),
             maxHeight: .infinity
         )
         .onAppear {

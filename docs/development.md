@@ -11,7 +11,7 @@
 ## 构建
 
 ```bash
-git clone https://github.com/wangsendi/ClipCV.git
+git clone https://github.com/wangsendi/ClipCV-MacOs.git
 cd ClipCV
 open ClipCV.xcodeproj   # Xcode 中 ⌘R 运行
 ```

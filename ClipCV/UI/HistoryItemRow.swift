@@ -15,6 +15,12 @@ struct HistoryItemRow: View {
 
     @State private var listImage: NSImage?
 
+    // Maccy-style: text rows stay at the compact itemHeight; only image rows
+    // grow with the user's imageMaxHeight setting.
+    private var rowMinHeight: CGFloat {
+        item.hasImage ? CGFloat(settings.imageMaxHeight) + 4 : PopupStyle.itemHeight
+    }
+
     private var listMaxSide: CGFloat {
         CGFloat(max(settings.imageMaxHeight, 40)) * 2
     }
@@ -29,7 +35,7 @@ struct HistoryItemRow: View {
             Spacer(minLength: 8)
             trailingBadges
         }
-        .frame(minHeight: max(PopupStyle.itemHeight, CGFloat(settings.imageMaxHeight) + 4))
+        .frame(minHeight: rowMinHeight)
         .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(isSelected ? Color.white : .primary)
         .background(

@@ -165,10 +165,7 @@ final class HistoryPanelController {
         let expanded = previewLeading || abs(panel.frame.width - (geo.listW + geo.previewW)) < 2
         let size = NSSize(
             width: expanded ? geo.listW + geo.previewW : geo.listW,
-            height: PopupStyle.preferredHeight(
-                itemCount: itemCount,
-                imageMaxHeight: settings.imageMaxHeight
-            )
+            height: PopupStyle.preferredHeight(itemCount: itemCount)
         )
         var origin = NSPoint(
             x: geo.originX(expanded: expanded, leading: previewLeading),

@@ -28,7 +28,7 @@ enum PopupStyle {
     static var defaultPanelHeight: CGFloat { preferredHeight(itemCount: 10) }
     static var minimumPanelHeight: CGFloat { preferredHeight(itemCount: minimumVisibleItems) }
     // Empty list keeps chrome + a little breathing room, no placeholder copy.
-    static var emptyPanelHeight: CGFloat { chromeHeight + rowHeight() * CGFloat(minimumVisibleItems) }
+    static var emptyPanelHeight: CGFloat { chromeHeight + itemHeight * CGFloat(minimumVisibleItems) }
 
     private static var chromeHeight: CGFloat {
         headerHeight + typeBarHeight + verticalPadding * 2 + verticalSeparatorPadding + 8
@@ -38,14 +38,11 @@ enum PopupStyle {
         max(minimumVisibleItems, Int((maxPanelHeight - chromeHeight) / itemHeight))
     }
 
-    static func rowHeight(imageMaxHeight: Int = 40) -> CGFloat {
-        max(itemHeight, CGFloat(imageMaxHeight) + 4)
-    }
-
     // Never shrink below minimumVisibleItems — filter/search with 1–2 hits was clipping header + app bar.
     static func preferredHeight(itemCount: Int, imageMaxHeight: Int = 40) -> CGFloat {
         guard itemCount > 0 else { return emptyPanelHeight }
-        let row = rowHeight(imageMaxHeight: imageMaxHeight)
+        // Approximate with the compact row height; image rows self-size in the scroll view.
+        let row = PopupStyle.itemHeight
         let maxRows = max(minimumVisibleItems, Int((maxPanelHeight - chromeHeight) / row))
         let rows = min(max(itemCount, minimumVisibleItems), maxRows)
         return min(chromeHeight + CGFloat(rows) * row, maxPanelHeight)

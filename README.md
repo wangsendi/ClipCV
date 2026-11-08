@@ -67,13 +67,13 @@ macOS 26+ · Swift · SwiftUI · Sparkle 2
 ## 📥 安装
 
 ### 下载
-从 [Releases](https://github.com/wangsendi/ClipCV/releases) 下载最新版 `ClipCV.zip`，解压后将 `ClipCV.app` 拖入「应用程序」文件夹。
+从 [Releases](https://github.com/wangsendi/ClipCV-MacOs/releases) 下载最新版 `ClipCV.zip`，解压后将 `ClipCV.app` 拖入「应用程序」文件夹。
 
 > 首次启动若提示无法验证开发者，请前往 **系统设置 → 隐私与安全性**，点「仍要打开」。
 
 ### 从源码构建
 ```bash
-git clone https://github.com/wangsendi/ClipCV.git
+git clone https://github.com/wangsendi/ClipCV-MacOs.git
 cd ClipCV
 open ClipCV.xcodeproj
 ```
@@ -104,7 +104,7 @@ ClipCV 不联网上传任何数据（仅检查软件更新时访问 GitHub）：
 ## 🛠 从源码构建
 
 ```bash
-git clone https://github.com/wangsendi/ClipCV.git
+git clone https://github.com/wangsendi/ClipCV-MacOs.git
 cd ClipCV
 xcodebuild -project ClipCV.xcodeproj -scheme ClipCV -configuration Release build
 ```

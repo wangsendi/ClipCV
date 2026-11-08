@@ -41,8 +41,8 @@ Enable it in **Settings → Advanced** (requires an Apple ID signed into iCloud)
 ClipCV uses [Sparkle](https://sparkle-project.org) (checks daily by default). You can also check manually via **Settings → General → Check Now**. Updates are verified with an EdDSA signature.
 
 ### Update check fails?
-The appcast is hosted on GitHub (raw.githubusercontent.com). If your network blocks it, download manually from [Releases](https://github.com/wangsendi/ClipCV/releases).
+The appcast is hosted on GitHub (raw.githubusercontent.com). If your network blocks it, download manually from [Releases](https://github.com/wangsendi/ClipCV-MacOs/releases).
 
 ---
 
-More questions? [Open an issue](https://github.com/wangsendi/ClipCV/issues).
+More questions? [Open an issue](https://github.com/wangsendi/ClipCV-MacOs/issues).
