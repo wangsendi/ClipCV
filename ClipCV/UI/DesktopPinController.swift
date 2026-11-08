@@ -61,12 +61,15 @@ final class DesktopPinController {
         }
         guard escapeMonitor == nil else { return }
         escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Local monitors run on the main thread; avoid touching NSEvent across
+            // concurrency boundaries (NSEvent is not Sendable in Swift 6).
             guard event.keyCode == 53 else { return event }
-            return MainActor.assumeIsolated {
-                guard let panel = NSApp.keyWindow as? DesktopPinPanel else { return event }
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                guard let panel = NSApp.keyWindow as? DesktopPinPanel else { return false }
                 panel.dismiss()
-                return nil
+                return true
             }
+            return handled ? nil : event
         }
     }
 }

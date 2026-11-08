@@ -12,9 +12,11 @@ enum DeveloperPreviewKind: Equatable, Sendable {
 
 enum DeveloperPreview {
     // Full JSON highlight / Markdown parse on huge blobs stalls selection.
-    private static let maxRenderCharacters = 120_000
+    nonisolated private static let maxRenderCharacters = 120_000
 
-    static func kind(of text: String) -> DeveloperPreviewKind {
+    // Pure string → AttributedString computation with no UI state:
+    // callable from any executor (used from a detached render task).
+    nonisolated static func kind(of text: String) -> DeveloperPreviewKind {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         // Avoid full JSON parse on the main thread for huge blobs.
         if trimmed.first == "{" || trimmed.first == "[" {
@@ -24,13 +26,13 @@ enum DeveloperPreview {
         return .plain
     }
 
-    static func rawAttributed(_ text: String) -> AttributedString {
+    nonisolated static func rawAttributed(_ text: String) -> AttributedString {
         var plain = AttributedString(text)
         plain.font = .system(size: 12, design: .monospaced)
         return plain
     }
 
-    static func renderedAttributed(from text: String, kind: DeveloperPreviewKind) -> AttributedString {
+    nonisolated static func renderedAttributed(from text: String, kind: DeveloperPreviewKind) -> AttributedString {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let source = trimmed.count > maxRenderCharacters
             ? String(trimmed.prefix(maxRenderCharacters)) + "\n…"
@@ -45,12 +47,12 @@ enum DeveloperPreview {
         }
     }
 
-    private static func isJSON(_ text: String) -> Bool {
+    nonisolated private static func isJSON(_ text: String) -> Bool {
         guard let data = text.data(using: .utf8) else { return false }
         return (try? JSONSerialization.jsonObject(with: data)) != nil
     }
 
-    private static func highlightedJSON(from text: String) -> AttributedString? {
+    nonisolated private static func highlightedJSON(from text: String) -> AttributedString? {
         guard text.first == "{" || text.first == "[",
               let data = text.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data),
@@ -83,7 +85,7 @@ enum DeveloperPreview {
         return result
     }
 
-    private static func markdown(from text: String) -> AttributedString? {
+    nonisolated private static func markdown(from text: String) -> AttributedString? {
         var options = AttributedString.MarkdownParsingOptions()
         options.interpretedSyntax = .full
         guard var attributed = try? AttributedString(markdown: text, options: options) else { return nil }
@@ -91,7 +93,7 @@ enum DeveloperPreview {
         return attributed
     }
 
-    private static func looksLikeMarkdown(_ text: String) -> Bool {
+    nonisolated private static func looksLikeMarkdown(_ text: String) -> Bool {
         let signalPrefixes = ["#", "```", "> ", "- ", "* ", "1. ", "|"]
         let head = text.prefix(8_000)
         let signals = head.split(whereSeparator: \.isNewline).prefix(40).filter { line in
