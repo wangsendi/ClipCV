@@ -1,0 +1,10 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>ClipCV</title>
+    <link>https://raw.githubusercontent.com/wangsendi/ClipCV/main/appcast.xml</link>
+    <description>Most recent changes with links to updates.</description>
+    <language>en</language>
+    <!-- Updated by scripts/release-direct.sh; zip lives on GitHub Releases. -->
+  </channel>
+</rss>

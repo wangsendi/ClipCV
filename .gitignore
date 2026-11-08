@@ -1,0 +1,11 @@
+.spm/
+.ci-source-packages/
+build/
+dist/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.DS_Store
+.cursor/
+scripts/
+default.profraw

@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: xcode-27
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: |
+          set -euo pipefail
+          LATEST="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          LATEST="${LATEST:-/Applications/Xcode.app}"
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
+          swift --version
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: .ci-source-packages
+          key: spm-${{ runner.os }}-${{ hashFiles('ClipCV.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Resolve packages
+        run: |
+          set -euo pipefail
+          resolve() {
+            xcodebuild \
+              -project ClipCV.xcodeproj \
+              -scheme ClipCV \
+              -destination 'platform=macOS' \
+              -clonedSourcePackagesDirPath .ci-source-packages \
+              -resolvePackageDependencies
+          }
+          resolve
+          if [[ ! -d .ci-source-packages/artifacts/sparkle/Sparkle/Sparkle.xcframework ]]; then
+            echo "Sparkle XCFramework missing after resolve; clearing cache and retrying"
+            rm -rf .ci-source-packages
+            resolve
+          fi
+          test -d .ci-source-packages/artifacts/sparkle/Sparkle/Sparkle.xcframework
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild \
+            -project ClipCV.xcodeproj \
+            -scheme ClipCV \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath .ci-source-packages \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcbeautify --quieter
+
+      - name: Test
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild \
+            -project ClipCV.xcodeproj \
+            -scheme ClipCV \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath .ci-source-packages \
+            -derivedDataPath build \
+            -only-testing:ClipCVTests \
+            CODE_SIGNING_ALLOWED=NO \
+            test | xcbeautify --quieter
+
+      - name: Verify Sparkle embedded
+        run: |
+          set -euo pipefail
+          APP="build/Build/Products/Debug/ClipCV.app"
+          test -d "$APP/Contents/Frameworks/Sparkle.framework"
+          /usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP/Contents/Info.plist"
