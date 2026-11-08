@@ -5,6 +5,20 @@
     <link>https://raw.githubusercontent.com/wangsendi/ClipCV/main/appcast.xml</link>
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
-    <!-- Updated by scripts/release-direct.sh; zip lives on GitHub Releases. -->
+    <item>
+      <title>1.0.0</title>
+      <pubDate>Sun, 08 Nov 2026 03:36:05 +0000</pubDate>
+      <releaseNotesLink>https://github.com/wangsendi/ClipCV/releases/tag/1.0.0</releaseNotesLink>
+      <sparkle:version>2611081135</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/wangsendi/ClipCV/releases/download/1.0.0/ClipCV.app.zip"
+        length="1735180"
+        type="application/octet-stream"
+        sparkle:version="2611081135"
+        sparkle:shortVersionString="1.0.0"
+        sparkle:edSignature="StOcocQTSlKklnv4xZN1iveODb+gM04YDUENeMitJBND4/s6WrqNOObXNa7j6GnC+3jL8fChYskkVtrWguLhDA==" />
+    </item>
   </channel>
 </rss>
