@@ -106,7 +106,7 @@ struct ClipboardRulesTests {
         let payloads = [text] + files
         pasteboard.setString("overwritten", forType: .string)
 
-        ClipboardWriter.write(
+        try ClipboardWriter.write(
             removeFormatting ? ClipboardRules.payloadsRemovingFormatting(payloads) : payloads,
             to: pasteboard
         )
@@ -136,7 +136,7 @@ struct ClipboardRulesTests {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
 
-        ClipboardWriter.write([ClipboardPayload(type: fileType, data: data)], to: pasteboard)
+        try ClipboardWriter.write([ClipboardPayload(type: fileType, data: data)], to: pasteboard)
 
         #expect(raw.hasPrefix("file:///.file/id="))
         #expect(pasteboard.data(forType: .fileURL) == data)
@@ -150,13 +150,42 @@ struct ClipboardRulesTests {
         #expect(try Data(contentsOf: URL(fileURLWithPath: path)) == content)
     }
 
-    @Test func restoringRichTextPreservesFormattingInOneItem() {
+    @Test(arguments: [false, true])
+    func inaccessibleFilesLeaveExistingClipboardUnchanged(missing: Bool) throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("protected.docx")
+        if !missing {
+            try Data("file fixture".utf8).write(to: url)
+            try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: url.path)
+        }
+        defer {
+            if !missing {
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            }
+        }
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.setString("keep existing clipboard", forType: .string)
+        let changeCount = pasteboard.changeCount
+        let payload = ClipboardPayload(type: fileType, data: Data(url.absoluteString.utf8))
+
+        #expect(throws: (any Error).self) {
+            try ClipboardWriter.write([payload], to: pasteboard)
+        }
+
+        #expect(pasteboard.changeCount == changeCount)
+        #expect(pasteboard.string(forType: .string) == "keep existing clipboard")
+    }
+
+    @Test func restoringRichTextPreservesFormattingInOneItem() throws {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
         let text = ClipboardPayload(type: stringType, data: Data("标题".utf8))
         let rich = ClipboardPayload(type: rtfType, data: Data("{\\rtf1 title}".utf8))
 
-        ClipboardWriter.write([text, rich], to: pasteboard)
+        try ClipboardWriter.write([text, rich], to: pasteboard)
 
         #expect(pasteboard.string(forType: .string) == "标题")
         #expect(pasteboard.data(forType: .rtf) == rich.data)

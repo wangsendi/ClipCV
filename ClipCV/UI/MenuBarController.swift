@@ -95,9 +95,9 @@ final class MenuBarController: NSObject {
         }
         actions.copyText = { [weak self] text in
             guard let self, !text.isEmpty else { return }
-            ClipboardWriter.write([
+            guard writeToClipboard([
                 ClipboardPayload(type: ClipboardRules.Kind.string, data: Data(text.utf8)),
-            ])
+            ]) else { return }
             monitor.notePasteboardChangedByUs()
         }
         actions.recognizeOCR = { [weak self] item in
@@ -151,8 +151,7 @@ final class MenuBarController: NSObject {
 
     private func copy(_ item: ClipboardItem, thenPaste: Bool, plain: Bool) {
         let payloads = plain ? ClipboardRules.payloadsRemovingFormatting(item.payloads) : item.payloads
-        guard !payloads.isEmpty else { return }
-        ClipboardWriter.write(payloads)
+        guard !payloads.isEmpty, writeToClipboard(payloads) else { return }
         monitor.notePasteboardChangedByUs()
         panelController.hide()
         monitor.recordUse(of: item)
@@ -167,6 +166,21 @@ final class MenuBarController: NSObject {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(50))
             PasteService.sendPaste()
+        }
+    }
+
+    private func writeToClipboard(_ payloads: [ClipboardPayload]) -> Bool {
+        do {
+            try ClipboardWriter.write(payloads)
+            return true
+        } catch {
+            let alert = NSAlert(error: error)
+            if let error = error as? POSIXError, [.EACCES, .EPERM].contains(error.code) {
+                alert.informativeText = L10n.t(.fileAccessHint)
+            }
+            NSApp.activate()
+            alert.runModal()
+            return false
         }
     }
 

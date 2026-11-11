@@ -1,7 +1,16 @@
 import AppKit
+import Darwin
 
 enum ClipboardWriter {
-    static func write(_ payloads: [ClipboardPayload], to pasteboard: NSPasteboard = .general) {
+    static func write(_ payloads: [ClipboardPayload], to pasteboard: NSPasteboard = .general) throws {
+        // Opening the file lets macOS request folder access before we replace the clipboard.
+        for url in ClipboardRules.fileURLs(from: payloads) {
+            let descriptor = open(url.path, O_RDONLY | O_CLOEXEC)
+            guard descriptor >= 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO, userInfo: [NSFilePathErrorKey: url.path])
+            }
+            close(descriptor)
+        }
         pasteboard.clearContents()
         let marker = NSPasteboard.PasteboardType(ClipboardRules.Kind.internalMarker)
         let files = payloads.filter { $0.type == ClipboardRules.Kind.fileURL }
@@ -20,7 +29,7 @@ enum ClipboardWriter {
                 }
                 return item
             }
-            pasteboard.writeObjects(items)
+            guard pasteboard.writeObjects(items) else { throw CocoaError(.fileWriteUnknown) }
         }
         pasteboard.setData(Data([1]), forType: marker)
     }

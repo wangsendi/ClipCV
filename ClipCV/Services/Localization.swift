@@ -73,7 +73,7 @@ enum L10n {
         case unpin, pinToDesktop, pinToDesktopSession, revealInFinder, dragToInsertHint, selectThenDragHint, clear, settings
         case editItem, alias, aliasPlaceholder, content, contentNotEditable, cancel, done, pinKeyLabel, pinKeyTaken, pinKeyInvalid, copyOCR, recognizeOCR
         case searchPlaceholder, noHistory, noMatches
-        case needsAccessibility, accessibilityCopied, accessibilityCopiedPlain, ok
+        case needsAccessibility, accessibilityCopied, accessibilityCopiedPlain, fileAccessHint, ok
         case showHistory, resumeRecording, pauseRecording, ignoreNextCopy
         case clearUnpinned, clearEverything, quitApp
         case ignoreNextTooltip, pausedTooltip
@@ -229,6 +229,7 @@ enum L10n {
         .needsAccessibility: "需要辅助功能权限",
         .accessibilityCopied: "内容已复制到剪贴板。若要自动粘贴到当前应用，请允许 ClipCV 使用辅助功能。",
         .accessibilityCopiedPlain: "纯文本已复制到剪贴板。若要自动粘贴到当前应用，请允许 ClipCV 使用辅助功能。",
+        .fileAccessHint: "请在“系统设置 → 隐私与安全性 → 文件与文件夹”中允许 ClipCV 访问文件所在目录，然后重试。",
         .ok: "好",
         .showHistory: "显示历史",
         .resumeRecording: "继续记录",
@@ -409,6 +410,7 @@ enum L10n {
         .needsAccessibility: "Accessibility Access Required",
         .accessibilityCopied: "Content was copied to the clipboard. Allow ClipCV in Accessibility to paste automatically.",
         .accessibilityCopiedPlain: "Plain text was copied to the clipboard. Allow ClipCV in Accessibility to paste automatically.",
+        .fileAccessHint: "Allow ClipCV to access the file's folder in System Settings → Privacy & Security → Files & Folders, then try again.",
         .ok: "OK",
         .showHistory: "Show History",
         .resumeRecording: "Resume Recording",
