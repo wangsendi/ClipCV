@@ -88,6 +88,41 @@ struct ClipCVTests {
         #expect(try readContext.fetchCount(FetchDescriptor<ClipboardContent>()) == 1)
     }
 
+    @Test(arguments: [false, true])
+    func reusingHistoryMovesItToMostRecentWithoutDuplicatingIt(pinned: Bool) throws {
+        let (container, monitor, item) = try makeEditFixture()
+        let originalDate = Date(timeIntervalSince1970: 100)
+        item.createdAt = originalDate
+        item.firstCopiedAt = originalDate
+        item.numberOfCopies = 3
+        item.pinned = pinned
+        item.pinKey = pinned ? "Q" : nil
+        item.pinOrder = 2
+        let originalPayloads = item.payloads
+        try container.mainContext.save()
+
+        monitor.recordUse(of: item)
+        monitor.recordUse(of: item)
+
+        let readContext = ModelContext(container)
+        let items = try readContext.fetch(FetchDescriptor<ClipboardItem>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        ))
+        let saved = try #require(items.first)
+        #expect(items.count == 2)
+        #expect(saved.identifier == item.identifier)
+        #expect(saved.createdAt > originalDate)
+        #expect(saved.firstCopiedAt == originalDate)
+        #expect(saved.numberOfCopies == 5)
+        #expect(saved.pinned == pinned)
+        #expect(saved.pinKey == (pinned ? "Q" : nil))
+        #expect(saved.pinOrder == 2)
+        #expect(saved.alias == "Original alias")
+        #expect(saved.payloads == originalPayloads)
+        #expect(try readContext.fetchCount(FetchDescriptor<ClipboardContent>()) == 1)
+        #expect(!container.mainContext.hasChanges)
+    }
+
     private func makeEditFixture() throws -> (ModelContainer, ClipboardMonitor, ClipboardItem) {
         let schema = Schema([ClipboardItem.self, ClipboardContent.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)

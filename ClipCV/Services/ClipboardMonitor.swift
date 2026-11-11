@@ -41,6 +41,13 @@ final class ClipboardMonitor {
         changeCount = NSPasteboard.general.changeCount
     }
 
+    func recordUse(of item: ClipboardItem) {
+        // Our pasteboard writes skip polling, so reuse must update the existing record directly.
+        item.createdAt = .now
+        item.numberOfCopies += 1
+        save()
+    }
+
     func delete(_ item: ClipboardItem) {
         ThumbnailCache.invalidate(id: item.identifier)
         context.delete(item)

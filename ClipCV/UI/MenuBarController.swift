@@ -85,13 +85,13 @@ final class MenuBarController: NSObject {
 
     private func wireClipboardActions() {
         actions.copy = { [weak self] item in
-            self?.copy(item.payloads, thenPaste: false, plain: false)
+            self?.copy(item, thenPaste: false, plain: false)
         }
         actions.paste = { [weak self] item in
-            self?.copy(item.payloads, thenPaste: true, plain: false)
+            self?.copy(item, thenPaste: true, plain: false)
         }
         actions.pastePlain = { [weak self] item in
-            self?.copy(ClipboardRules.payloadsRemovingFormatting(item.payloads), thenPaste: true, plain: true)
+            self?.copy(item, thenPaste: true, plain: true)
         }
         actions.delete = { [weak self] item in
             self?.monitor.delete(item)
@@ -155,11 +155,13 @@ final class MenuBarController: NSObject {
         }
     }
 
-    private func copy(_ payloads: [ClipboardPayload], thenPaste: Bool, plain: Bool) {
+    private func copy(_ item: ClipboardItem, thenPaste: Bool, plain: Bool) {
+        let payloads = plain ? ClipboardRules.payloadsRemovingFormatting(item.payloads) : item.payloads
         guard !payloads.isEmpty else { return }
         ClipboardWriter.write(payloads)
         monitor.notePasteboardChangedByUs()
         panelController.hide()
+        monitor.recordUse(of: item)
         refreshAppearance()
         guard thenPaste else { return }
         guard PasteService.isTrusted(prompt: false)
