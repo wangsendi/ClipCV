@@ -70,6 +70,22 @@ struct ClipboardRulesTests {
         #expect(String(data: plain[0].data, encoding: .utf8) == "标题")
     }
 
+    @Test(arguments: [1, 2])
+    func plainPastePreservesFilesAlongsideTheirText(count: Int) {
+        let files = (0..<count).map { index in
+            let url = URL(fileURLWithPath: "/tmp/王森迪1108-\(index).docx")
+            return ClipboardPayload(type: fileType, data: Data(url.absoluteString.utf8))
+        }
+        let text = ClipboardPayload(type: stringType, data: Data("王森迪1108.docx".utf8))
+        let rich = ClipboardPayload(type: rtfType, data: Data("{\\rtf1 filename}".utf8))
+
+        let plain = ClipboardRules.payloadsRemovingFormatting([rich, text] + files)
+
+        #expect(plain == [text] + files)
+        #expect(ClipboardRules.fileURLs(from: plain).count == count)
+        #expect(ClipboardRules.payloadsRemovingFormatting(files) == files)
+    }
+
     @Test func titleCollapsesWhitespaceAndTruncates() {
         let spaced = ClipboardPayload(type: stringType, data: Data("第一行\n\n第二行".utf8))
         #expect(ClipboardRules.title(for: [spaced]) == "第一行 第二行")

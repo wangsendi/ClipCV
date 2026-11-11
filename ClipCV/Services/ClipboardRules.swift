@@ -195,7 +195,9 @@ enum ClipboardRules {
 
     static func payloadsRemovingFormatting(_ contents: [ClipboardPayload]) -> [ClipboardPayload] {
         if let text = plainText(from: contents) {
+            // Finder includes a text representation; removing formatting must preserve the files.
             return [ClipboardPayload(type: Kind.string, data: Data(text.utf8))]
+                + contents.filter { $0.type == Kind.fileURL }
         }
         return contents.filter {
             $0.type == Kind.png || $0.type == Kind.tiff || $0.type == Kind.fileURL
