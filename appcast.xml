@@ -1,24 +1,16 @@
-<?xml version="1.0" standalone="yes"?>
+<?xml version='1.0' encoding='utf-8'?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <title>ClipCV</title>
-    <link>https://raw.githubusercontent.com/wangsendi/ClipCV-MacOs/main/appcast.xml</link>
-    <description>Most recent changes with links to updates.</description>
-    <language>en</language>
     <item>
-      <title>1.0</title>
-      <pubDate>Sun, 08 Nov 2026 05:50:00 +0000</pubDate>
-      <releaseNotesLink>https://github.com/wangsendi/ClipCV-MacOs/releases/tag/v1.0.0</releaseNotesLink>
+      <title>1.0.2</title>
+      <pubDate>Wed, 11 Nov 2026 03:59:14 +0000</pubDate>
+      <link>https://github.com/wangsendi/ClipCV-MacOs/releases/tag/v1.0.2</link>
       <sparkle:version>1</sparkle:version>
-      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <enclosure
-        url="https://github.com/wangsendi/ClipCV-MacOs/releases/download/v1.0.0/ClipCV.dmg"
-        length="4273374"
-        type="application/octet-stream"
-        sparkle:version="1"
-        sparkle:shortVersionString="1.0"
-        sparkle:edSignature="UNQUklkc2Mn/5f35zRFwHeN2LtTzTwyPfT+wNECDHkR4ONOmPJRHJOWpk9ddUXbNaVb7qIZC+2clmkuYX2GFBw==" />
+      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/wangsendi/ClipCV-MacOs/releases/download/v1.0.2/ClipCV.dmg" length="4276371" type="application/octet-stream" sparkle:edSignature="aMZebUyS71aTg4iQPF43rl6UVwcLy1S5C0QZlPL/66zwbd8elgHkoyauWwcCzlyCz29vy+VEts8D1WuKk69zDg==" />
     </item>
+    <link>https://raw.githubusercontent.com/wangsendi/ClipCV-MacOs/main/appcast.xml</link>
   </channel>
 </rss>

@@ -15,17 +15,26 @@
     {
       "kind": "remote",
       "repository": "https://github.com/sparkle-project/Sparkle",
-      "version": { "up-to-next-major-version": "2.7.0" }
-    }
+      "version": {
+        "up-to-next-major-version": "2.7.0",
+      },
+    },
   ],
   "files": [
     {
       "kind": "folder",
       "path": "ClipCV",
-      "target-membership": [ "ClipCV" ],
+      "target-membership": [
+        "ClipCV",
+      ],
       "membership-exceptions": [
-        { "target": "ClipCV", "exclusions": [ "Info.plist" ] }
-      ]
+        {
+          "target": "ClipCV",
+          "exclusions": [
+            "Info.plist",
+          ],
+        },
+      ],
     },
     { "kind": "folder", "path": "ClipCVTests", "target-membership": [ "ClipCVTests" ] },
     { "kind": "folder", "path": "ClipCVUITests", "target-membership": [ "ClipCVUITests" ] },
@@ -45,17 +54,17 @@
       "id": "58D993CE309EBF6500621230",
       "product": "Products/ClipCV.app",
       "product-type": "application",
-      "package-product-members": [
-        {
-          "package": "Sparkle",
-          "product-name": "Sparkle",
-          "build-phase": { "build-phase": "frameworks" }
-        }
-      ],
       "build-phases": [
         "compile-sources",
         "frameworks",
         "resources",
+      ],
+      "package-product-members": [
+        {
+          "package": "Sparkle",
+          "product-name": "Sparkle",
+          "build-phase": { "build-phase": "frameworks" },
+        },
       ],
       "build-settings": {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
@@ -63,7 +72,7 @@
         "CODE_SIGN_ENTITLEMENTS": "ClipCV/ClipCV.entitlements",
         "CODE_SIGN_STYLE": "Automatic",
         "COMBINE_HIDPI_IMAGES": "YES",
-        "CURRENT_PROJECT_VERSION": "1",
+        "CURRENT_PROJECT_VERSION": "$(MARKETING_VERSION)",
         "DEVELOPMENT_TEAM": "5YSWS3ZZ89",
         "ENABLE_APP_SANDBOX": "NO",
         "ENABLE_HARDENED_RUNTIME": "YES",
@@ -76,7 +85,7 @@
           "$(inherited)",
           "@executable_path/../Frameworks",
         ],
-        "MARKETING_VERSION": "1.0",
+        "MARKETING_VERSION": "1.0.2",
         "PRODUCT_BUNDLE_IDENTIFIER": "wangsendi.ClipCV",
         "PRODUCT_NAME": "$(TARGET_NAME)",
         "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
