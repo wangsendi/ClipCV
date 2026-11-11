@@ -1,18 +1,65 @@
-//
-//  HistoryView.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftData
 import SwiftUI
 
 struct HistoryView: View {
-    @Environment(HistoryActions.self) private var actions
     @Environment(AppSettings.self) private var settings
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
-
     @State private var query = ""
+    @State private var category: HistoryTypeFilter = .all
+    @State private var sourceAppFilter: String?
+
+    private var pinnedItems: [ClipboardItem] {
+        matchingFilters(items.filter(\.pinned)).sorted { $0.pinOrder < $1.pinOrder }
+    }
+    private var unpinnedFiltered: [ClipboardItem] {
+        let matching = matchingFilters(items.filter { !$0.pinned })
+        // 查询已按最近复制排序，避免重复排序。
+        return settings.sortMode == .lastCopiedAt ? matching : matching.sorted(by: sortUnpinned)
+    }
+    private var sourceApps: [String] { ClipboardRules.sourceApps(from: items) }
+
+    // 选择变化留在子视图，避免每次按键都重新筛选整份历史。
+    var body: some View {
+        HistoryContentView(
+            items: items, pinnedItems: pinnedItems, unpinnedFiltered: unpinnedFiltered,
+            sourceApps: sourceApps, query: $query, category: $category,
+            sourceAppFilter: $sourceAppFilter
+        )
+    }
+
+    private func matchingFilters(_ source: [ClipboardItem]) -> [ClipboardItem] {
+        let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return source.filter {
+            category.matches($0)
+                && (sourceAppFilter == nil || $0.sourceApp == sourceAppFilter)
+                && (keyword.isEmpty || SearchService.matches($0, query: keyword, mode: settings.searchMode))
+        }
+    }
+
+    private func sortUnpinned(_ lhs: ClipboardItem, _ rhs: ClipboardItem) -> Bool {
+        switch settings.sortMode {
+        case .lastCopiedAt: return lhs.createdAt > rhs.createdAt
+        case .firstCopiedAt: return lhs.firstCopiedAt > rhs.firstCopiedAt
+        case .numberOfCopies:
+            return lhs.numberOfCopies == rhs.numberOfCopies
+                ? lhs.createdAt > rhs.createdAt
+                : lhs.numberOfCopies > rhs.numberOfCopies
+        }
+    }
+}
+
+private struct HistoryContentView: View {
+    @Environment(HistoryActions.self) private var actions
+    @Environment(AppSettings.self) private var settings
+    let items: [ClipboardItem]
+    let pinnedItems: [ClipboardItem]
+    let unpinnedFiltered: [ClipboardItem]
+    let sourceApps: [String]
+    @Binding var query: String
+    @Binding var category: HistoryTypeFilter
+    @Binding var sourceAppFilter: String?
+
     @State private var selectedIndex = 0
     @State private var selectedIDs: Set<UUID> = []
     @State private var optionHeld = false
@@ -24,8 +71,6 @@ struct HistoryView: View {
     @State private var previewVisible = false
     @State private var previewPinned = false
     @State private var previewTask: Task<Void, Never>?
-    @State private var category: HistoryTypeFilter = .all
-    @State private var sourceAppFilter: String?
     @State private var pendingSelectionID: UUID?
     @State private var keyboardNavigating = false
     @State private var scrollToID: UUID?
@@ -34,14 +79,6 @@ struct HistoryView: View {
     @State private var confirmClearAll = false
     @State private var confirmClearUnpinned = false
 
-    private var pinnedItems: [ClipboardItem] {
-        matchingFilters(items.filter(\.pinned)).sorted { $0.pinOrder < $1.pinOrder }
-    }
-    private var unpinnedFiltered: [ClipboardItem] {
-        let matching = matchingFilters(items.filter { !$0.pinned })
-        // The query already supplies last-copied order; navigation must not sort it again.
-        return settings.sortMode == .lastCopiedAt ? matching : matching.sorted(by: sortUnpinned)
-    }
     private var canReorderPins: Bool { query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     private var filtered: [ClipboardItem] {
         settings.pinTo == .top ? pinnedItems + unpinnedFiltered : unpinnedFiltered + pinnedItems
@@ -53,14 +90,52 @@ struct HistoryView: View {
     private var selectedItems: [ClipboardItem] {
         filtered.filter { selectedIDs.contains($0.identifier) }
     }
-    private var sourceApps: [String] { ClipboardRules.sourceApps(from: items) }
     private var showsSearchField: Bool {
         guard settings.showSearch else { return false }
         return settings.searchVisibility != .duringSearch || !query.isEmpty || searchFocused
     }
 
+    // 分离布局、事件与弹窗，避免主视图同时承担多种职责。
     var body: some View {
         let _ = settings.appLanguage
+        panelWithClearDialogs
+            .onChange(of: isPreviewEditing) { _, editing in
+                actions.setSuppressAutoClose(editing)
+                if !editing { searchFocused = true }
+            }
+            .onAppear {
+                searchFocused = true
+                installMonitors()
+                resetSelection(clearFilters: false)
+            }
+            .onDisappear {
+                removeMonitors()
+                previewTask?.cancel()
+                setPreviewVisible(false, pinned: false)
+            }
+            .onChange(of: actions.presentationID) { _, _ in resetSelection(clearFilters: true) }
+            .onChange(of: category) { _, _ in resetSelection() }
+            .onChange(of: sourceAppFilter) { _, _ in resetSelection() }
+            .onChange(of: query) { _, _ in resetSelection() }
+            .onChange(of: selectedIndex) { _, _ in
+                isPreviewEditing = false
+                scheduleAutoPreview()
+            }
+            .onChange(of: actions.cycleRequest) { _, _ in
+                guard !filtered.isEmpty else { return }
+                moveSelection(1, wrap: true)
+                scheduleAutoPreview()
+            }
+            .onChange(of: filtered.count) { _, count in updateSelection(itemCount: count) }
+            // 结果改变后更新事件闭包，让快捷键始终使用当前列表。
+            .onChange(of: filtered) { _, _ in
+                removeMonitors()
+                installMonitors()
+            }
+            .onChange(of: pinnedItems.map(\.identifier)) { _, _ in restorePinSelection() }
+    }
+
+    private var panelContent: some View {
         ZStack {
             PopupBackground()
             HStack(alignment: .top, spacing: 0) {
@@ -76,9 +151,7 @@ struct HistoryView: View {
                     previewColumn(item)
                 }
             }
-            // Edge-pin the oversized content so the window (not the list) absorbs the
-            // preview expand/collapse: the preview column is revealed/clipped by the
-            // window edge while the list stays pixel-fixed.
+            // 预览展开时固定列表位置，避免选中行随窗口移动。
             .frame(
                 maxWidth: .infinity,
                 maxHeight: .infinity,
@@ -86,70 +159,50 @@ struct HistoryView: View {
             )
             .clipped()
         }
-        .onChange(of: isPreviewEditing) { _, editing in
-            actions.setSuppressAutoClose(editing)
-            if !editing { searchFocused = true }
-        }
         .frame(
             minWidth: PopupStyle.listWidth,
             maxWidth: .infinity,
             minHeight: PopupStyle.preferredHeight(itemCount: filtered.count),
             maxHeight: .infinity
         )
-        .onAppear {
-            searchFocused = true
-            installMonitors()
-            resetSelection(clearFilters: false)
-        }
-        .onDisappear {
-            removeMonitors()
-            previewTask?.cancel()
-            setPreviewVisible(false, pinned: false)
-        }
-        .onChange(of: actions.presentationID) { _, _ in resetSelection(clearFilters: true) }
-        .onChange(of: category) { _, _ in resetSelection() }
-        .onChange(of: sourceAppFilter) { _, _ in resetSelection() }
-        .onChange(of: query) { _, _ in resetSelection() }
-        .onChange(of: selectedIndex) { _, _ in
-            isPreviewEditing = false
-            scheduleAutoPreview()
-        }
-        .onChange(of: actions.cycleRequest) { _, _ in
-            guard !filtered.isEmpty else { return }
-            moveSelection(1, wrap: true)
-            scheduleAutoPreview()
-        }
-        .onChange(of: filtered.count) { oldCount, count in
-            if count == 0 {
-                selectedIndex = 0
-                selectedIDs = []
-                setPreviewVisible(false, pinned: false)
-            } else if selectedIndex >= count {
-                selectIndex(count - 1, scroll: true, lockHover: true)
+    }
+
+    private var panelWithClearDialogs: some View {
+        panelContent
+            .confirmationDialog(L10n.t(.clearUnpinned), isPresented: $confirmClearUnpinned) {
+                Button(L10n.t(.clearUnpinned), role: .destructive) { actions.clear(false) }
+                Button(L10n.t(.cancel), role: .cancel) {}
+            } message: {
+                Text(L10n.t(.clearUnpinnedConfirm))
             }
-            actions.resizePanelForContent(count)
-            actions.resizePanelForPreview(previewVisible && selectedItem != nil)
+            .confirmationDialog(L10n.t(.clearEverything), isPresented: $confirmClearAll) {
+                Button(L10n.t(.clearEverything), role: .destructive) { actions.clear(true) }
+                Button(L10n.t(.cancel), role: .cancel) {}
+            } message: {
+                Text(L10n.t(.clearEverythingConfirm))
+            }
+    }
+
+    // 历史增删后校正选择，避免访问越界。
+    private func updateSelection(itemCount count: Int) {
+        if count == 0 {
+            selectedIndex = 0
+            selectedIDs = []
+            setPreviewVisible(false, pinned: false)
+        } else if selectedIndex >= count {
+            selectIndex(count - 1, scroll: true, lockHover: true)
         }
-        // After pin/unpin the item moves between sections; restore selection to it.
-        .onChange(of: items.map(\.pinned)) { _, _ in
-            guard let id = pendingSelectionID,
-                  let index = filtered.firstIndex(where: { $0.identifier == id })
-            else { return }
-            selectIndex(index, scroll: true, lockHover: true)
-            pendingSelectionID = nil
-        }
-        .confirmationDialog(L10n.t(.clearUnpinned), isPresented: $confirmClearUnpinned) {
-            Button(L10n.t(.clearUnpinned), role: .destructive) { actions.clear(false) }
-            Button(L10n.t(.cancel), role: .cancel) {}
-        } message: {
-            Text(L10n.t(.clearUnpinnedConfirm))
-        }
-        .confirmationDialog(L10n.t(.clearEverything), isPresented: $confirmClearAll) {
-            Button(L10n.t(.clearEverything), role: .destructive) { actions.clear(true) }
-            Button(L10n.t(.cancel), role: .cancel) {}
-        } message: {
-            Text(L10n.t(.clearEverythingConfirm))
-        }
+        actions.resizePanelForContent(count)
+        actions.resizePanelForPreview(previewVisible && selectedItem != nil)
+    }
+
+    // 置顶会改变记录位置，按 ID 恢复选择。
+    private func restorePinSelection() {
+        guard let id = pendingSelectionID,
+              let index = filtered.firstIndex(where: { $0.identifier == id })
+        else { return }
+        selectIndex(index, scroll: true, lockHover: true)
+        pendingSelectionID = nil
     }
 
     private func previewColumn(_ item: ClipboardItem) -> some View {
@@ -198,7 +251,7 @@ struct HistoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // Isolate pin chrome from scroll so keyboard scrollTo doesn't fight pin layout.
+    // 置顶区不参与滚动，避免键盘定位影响布局。
     private var historyBody: some View {
         Group {
             if filtered.isEmpty {
@@ -260,7 +313,7 @@ struct HistoryView: View {
                         : PopupStyle.verticalSeparatorPadding
                 )
                 .padding(.bottom, PopupStyle.verticalSeparatorPadding)
-                // Keep visible rows stationary and avoid animation lag during key repeats.
+                // 连续按键不加滚动动画，避免选择落后于输入。
                 .onChange(of: scrollToID) { _, id in
                     guard let id else { return }
                     proxy.scrollTo(id)
@@ -365,7 +418,6 @@ struct HistoryView: View {
             let index = baseIndex + offset
             HistoryItemDragContainer(
                 makeSnapshots: {
-                    // Dragging a multi-selected row drags the whole selection.
                     let group = selectedIDs.count > 1 && selectedIDs.contains(item.identifier)
                         ? selectedItems : [item]
                     return group.compactMap { DesktopPinSnapshot.make(from: $0) }
@@ -374,11 +426,8 @@ struct HistoryView: View {
                 onActivate: { handleRowActivate(item, index: index) },
                 onHover: { hovering in
                     guard hovering else { return }
-                    // While keyboard-navigating, hover is ignored until a real mouse
-                    // move unlocks it; afterwards the hovered row takes over directly.
+                    // 滚动会触发悬停，键盘导航时不能让鼠标抢走选择。
                     guard !keyboardNavigating, !commandHeld, selectedIDs.count <= 1 else { return }
-                    // Hover selection never scrolls (Maccy selectWithoutScrolling):
-                    // scrolling here would fight the keyboard-driven scroll target.
                     selectedIndex = index
                     selectedIDs = [item.identifier]
                 },
@@ -470,26 +519,6 @@ struct HistoryView: View {
             try? await Task.sleep(for: .milliseconds(max(0, settings.previewDelay)))
             guard !Task.isCancelled, settings.openPreviewAutomatically, selectedItem != nil else { return }
             setPreviewVisible(true, pinned: false)
-        }
-    }
-
-    private func matchingFilters(_ source: [ClipboardItem]) -> [ClipboardItem] {
-        let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return source.filter {
-            category.matches($0)
-                && (sourceAppFilter == nil || $0.sourceApp == sourceAppFilter)
-                && (keyword.isEmpty || SearchService.matches($0, query: keyword, mode: settings.searchMode))
-        }
-    }
-
-    private func sortUnpinned(_ lhs: ClipboardItem, _ rhs: ClipboardItem) -> Bool {
-        switch settings.sortMode {
-        case .lastCopiedAt: return lhs.createdAt > rhs.createdAt
-        case .firstCopiedAt: return lhs.firstCopiedAt > rhs.firstCopiedAt
-        case .numberOfCopies:
-            return lhs.numberOfCopies == rhs.numberOfCopies
-                ? lhs.createdAt > rhs.createdAt
-                : lhs.numberOfCopies > rhs.numberOfCopies
         }
     }
 
@@ -593,8 +622,6 @@ struct HistoryView: View {
             }
             return event
         }
-        // Maccy-style: any real mouse movement unlocks hover instantly — the
-        // hovered row takes over via its own next hover event, no jump, no scroll.
         mouseMoveMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { event in
             MainActor.assumeIsolated { self.keyboardNavigating = false }
             return event
@@ -608,8 +635,7 @@ struct HistoryView: View {
     }
 
     private func handleKey(keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
-        // Self-heal cached modifier state: every keyDown carries live flags, so a
-        // missed flagsChanged (panel hidden during key-up) can't stick forever.
+        // 面板关闭时可能漏掉松键事件，按键时校正修饰键状态。
         optionHeld = flags.contains(.option)
         shiftHeld = flags.contains(.shift)
         commandHeld = flags.contains(.command)
@@ -646,8 +672,7 @@ struct HistoryView: View {
     }
 }
 
-// MARK: - Keyboard routing (split from body helpers to keep each path short)
-private extension HistoryView {
+private extension HistoryContentView {
     func handleCommandShortcuts(keyCode: UInt16, flags: NSEvent.ModifierFlags) -> Bool {
         let option = flags.contains(.option)
         let command = flags.contains(.command)
@@ -754,9 +779,6 @@ private extension HistoryView {
             moveSelection(shift ? -1 : 1, wrap: true); return true
         case 36, 76:
             guard !command, !control, let item = selectedItem else { return false }
-            // Use this event's live flags, not cached optionHeld/shiftHeld — the
-            // flagsChanged monitor misses key-ups that happen while the panel is
-            // closed, which left stale true values and fired paste (AX prompt).
             activate(item, option: option, shift: shift)
             return true
         default:

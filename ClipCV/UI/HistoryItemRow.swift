@@ -1,8 +1,3 @@
-//
-//  HistoryItemRow.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftUI
 
@@ -15,8 +10,6 @@ struct HistoryItemRow: View {
 
     @State private var listImage: NSImage?
 
-    // Maccy-style: text rows stay at the compact itemHeight; only image rows
-    // grow with the user's imageMaxHeight setting.
     private var rowMinHeight: CGFloat {
         item.hasImage ? CGFloat(settings.imageMaxHeight) + 4 : PopupStyle.itemHeight
     }
@@ -44,7 +37,9 @@ struct HistoryItemRow: View {
         )
         .contentShape(Rectangle())
         .task(id: "\(item.identifier.uuidString)-\(Int(listMaxSide))") {
-            listImage = await loadListThumbnail()
+            let image = await loadListThumbnail()
+            guard !Task.isCancelled else { return }
+            listImage = image
         }
     }
 
@@ -122,11 +117,10 @@ struct HistoryItemRow: View {
         let maxSide = listMaxSide
         if let cached = ThumbnailCache.cached(id: id, maxSide: maxSide) { return cached }
         guard let data = item.imagePayloadData else { return nil }
-        return await Task.detached(priority: .userInitiated) {
-            guard let image = ThumbnailCache.make(from: data, maxSide: maxSide) else { return nil }
-            ThumbnailCache.store(image, id: id, maxSide: maxSide)
-            return image
-        }.value
+        let image = await ThumbnailCache.makeCancellable(from: data, maxSide: maxSide)
+        guard !Task.isCancelled, let image else { return nil }
+        ThumbnailCache.store(image, id: id, maxSide: maxSide)
+        return image
     }
 
     private var displayTitle: String {

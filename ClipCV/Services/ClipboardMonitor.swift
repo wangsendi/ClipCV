@@ -49,7 +49,7 @@ final class ClipboardMonitor {
     }
 
     func delete(_ item: ClipboardItem) {
-        ThumbnailCache.invalidate(id: item.identifier)
+        ThumbnailCache.clear()
         context.delete(item)
         save()
     }

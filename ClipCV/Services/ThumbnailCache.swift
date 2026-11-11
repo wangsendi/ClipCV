@@ -1,17 +1,11 @@
-//
-//  ThumbnailCache.swift
-//  ClipCV
-//
-
 import AppKit
 import ImageIO
 
 enum ThumbnailCache: Sendable {
-    // NSCache is thread-safe; marked unsafe so list decode can run off the main actor.
+    // NSCache 支持并发访问，可安全跨 actor 共享。
     nonisolated(unsafe) private static let cache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
         cache.totalCostLimit = 32 * 1024 * 1024
-        cache.countLimit = 256
         return cache
     }()
 
@@ -24,12 +18,25 @@ enum ThumbnailCache: Sendable {
         cache.setObject(image, forKey: cacheKey(id, maxSide), cost: Int(pixels * 4))
     }
 
-    // NSCache has no prefix remove — clear all list thumbs when any image item changes.
-    nonisolated static func invalidate(id _: UUID) {
+    nonisolated static func clear() {
         cache.removeAllObjects()
     }
 
-    /// Decode a downscaled image via ImageIO without materializing the full bitmap first.
+    nonisolated static func makeCancellable(from data: Data, maxSide: CGFloat) async -> NSImage? {
+        guard !Task.isCancelled else { return nil }
+        let decode = Task.detached(priority: .userInitiated) {
+            guard !Task.isCancelled else { return nil as NSImage? }
+            let image = make(from: data, maxSide: maxSide)
+            return Task.isCancelled ? nil : image
+        }
+        return await withTaskCancellationHandler {
+            await decode.value
+        } onCancel: {
+            decode.cancel()
+        }
+    }
+
+    // 直接生成缩略图，避免先解码完整位图。
     nonisolated static func make(from data: Data, maxSide: CGFloat) -> NSImage? {
         let side = max(1, Int(maxSide.rounded()))
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
@@ -45,7 +52,6 @@ enum ThumbnailCache: Sendable {
         return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
     }
 
-    /// Returns PNG bytes capped to `maxSide`, or nil if resizing is unnecessary / fails.
     nonisolated static func resizedPNGData(from data: Data, maxSide: Int) -> Data? {
         guard maxSide > 0, let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
         let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]

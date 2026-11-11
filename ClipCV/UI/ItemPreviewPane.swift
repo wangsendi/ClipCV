@@ -1,8 +1,3 @@
-//
-//  ItemPreviewPane.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftUI
 
@@ -27,6 +22,7 @@ struct ItemPreviewPane: View {
     @State private var isRendering = false
     @State private var renderTask: Task<Void, Never>?
     @State private var displayImage: NSImage?
+    @State private var imagePixelSize: (width: Int, height: Int)?
     @State private var isRecognizingOCR = false
 
     private var ocrText: String? {
@@ -50,10 +46,11 @@ struct ItemPreviewPane: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.primary.opacity(0.04))
         .onAppear { refresh(for: text) }
-        .task(id: item.identifier) { displayImage = await loadDisplayImage() }
+        .task(id: item.identifier) { await loadDisplayImage() }
         .onChange(of: item.identifier) { _, _ in
             isEditing = false
             displayImage = nil
+            imagePixelSize = nil
             refreshCurrent()
         }
         .onChange(of: item.alias) { _, _ in refreshCurrent() }
@@ -66,11 +63,15 @@ struct ItemPreviewPane: View {
         }
     }
 
-    private func loadDisplayImage() async -> NSImage? {
-        guard let data = item.imagePayloadData else { return nil }
-        return await Task.detached(priority: .userInitiated) {
-            ThumbnailCache.make(from: data, maxSide: 640)
-        }.value
+    private func loadDisplayImage() async {
+        // 连续选择时跳过途经图片，避免无用的解码和预览刷新。
+        do { try await Task.sleep(for: .milliseconds(60)) }
+        catch { return }
+        guard let data = item.imagePayloadData else { return }
+        let image = await ThumbnailCache.makeCancellable(from: data, maxSide: 640)
+        guard !Task.isCancelled else { return }
+        displayImage = image
+        imagePixelSize = ThumbnailCache.pixelSize(of: data)
     }
 
     private var editForm: some View {
@@ -280,11 +281,6 @@ struct ItemPreviewPane: View {
             Text("\(label):").foregroundStyle(.secondary)
             Text(value)
         }
-    }
-
-    private var imagePixelSize: (width: Int, height: Int)? {
-        guard let data = item.imagePayloadData else { return nil }
-        return ThumbnailCache.pixelSize(of: data)
     }
 
     private var contentByteCount: Int64? {
