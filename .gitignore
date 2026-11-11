@@ -1,5 +1,6 @@
 .spm/
 .ci-source-packages/
+.view/
 build/
 dist/
 DerivedData/

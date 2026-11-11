@@ -17,10 +17,7 @@ def validate_item(item: ET.Element, release: dict) -> None:
     build = item.findtext(SPARKLE + "version")
     display = item.findtext(SPARKLE + "shortVersionString")
     if display != expected or build != expected:
-        raise ValueError(
-            f"Release {expected} requires matching Version and Build; "
-            f"got {display} ({build})"
-        )
+        raise ValueError(f"Release {expected} requires matching Version and Build; " f"got {display} ({build})")
 
     asset = next(asset for asset in release["assets"] if asset["name"] == "ClipCV.dmg")
     enclosure = item.find("enclosure")
@@ -46,9 +43,7 @@ def update_appcast(path: Path, release: dict) -> None:
         raise ValueError("Missing appcast channel or item")
     validate_item(item, release)
 
-    published_at = datetime.fromisoformat(
-        release["published_at"].replace("Z", "+00:00")
-    )
+    published_at = datetime.fromisoformat(release["published_at"].replace("Z", "+00:00"))
     item.find("pubDate").text = format_datetime(published_at)
     channel.find("title").text = "ClipCV"
     feed_link = channel.find("link")
