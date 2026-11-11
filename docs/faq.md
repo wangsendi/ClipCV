@@ -41,8 +41,8 @@ xattr -d com.apple.quarantine /Applications/ClipCV.app
 ClipCV 使用 [Sparkle](https://sparkle-project.org) 自动更新（默认每天检查一次）。也可在 **设置 → 通用 → 立即检查** 手动检查。更新包经 EdDSA 签名校验，确保来源可信。
 
 ### 检查更新失败？
-Appcast 托管在 GitHub（raw.githubusercontent.com）。若网络受限，可手动下载：[Releases](https://github.com/wangsendi/ClipCV-MacOs/releases)。
+Appcast 托管在 GitHub（raw.githubusercontent.com）。若网络受限，可手动下载：[Releases](https://github.com/wangsendi/ClipCV/releases)。
 
 ---
 
-更多问题？[提交 Issue](https://github.com/wangsendi/ClipCV-MacOs/issues)。
+更多问题？[提交 Issue](https://github.com/wangsendi/ClipCV/issues)。

@@ -11,7 +11,7 @@
 ## Building
 
 ```bash
-git clone https://github.com/wangsendi/ClipCV-MacOs.git
+git clone https://github.com/wangsendi/ClipCV.git
 cd ClipCV
 open ClipCV.xcodeproj   # press ⌘R in Xcode
 ```
@@ -41,15 +41,16 @@ GitHub Actions workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.ym
 
 ## Release process
 
-ClipCV ships via local manual releases (like Maccy); release scripts stay out of the repo:
+1. Set Version in Xcode. Build follows Version and must increase with every release.
+2. Build Release locally, sign with Developer ID, notarize, and package as `ClipCV.dmg`.
+3. Create a matching release (for example, `v1.0.2`) in [ClipCV Releases](https://github.com/wangsendi/ClipCV/releases), upload `ClipCV.dmg`, then click Publish release.
+4. [Update appcast](../.github/workflows/update-appcast.yml) reads the version and system requirements from the package, signs it with EdDSA, validates the feed, and commits `appcast.xml` automatically.
 
-1. **Package & notarize**: `scripts/release.sh` (local, gitignored)
-   - Release build → Developer ID signing → notarization → zip
-2. **Generate appcast**: `scripts/make-appcast.sh` produces an EdDSA-signed `appcast.xml`
-3. **Publish**: commit `appcast.xml` and the zip download to the `main` branch
-   - SUFeedURL points at `raw.githubusercontent.com/.../main/appcast.xml`, so clients pick up the update automatically
+The app uses `https://raw.githubusercontent.com/wangsendi/ClipCV/main/appcast.xml` for updates. Users switching feeds must manually install a newly built package once; subsequent releases are detected automatically.
 
-Key safety: the EdDSA private key lives only in the local keychain and **never** enters the repo; the repo carries the public key only (`SUPublicEDKey`).
+Use `https://github.com/wangsendi/ClipCV/releases/latest/download/ClipCV.dmg` for a general download link. The appcast uses a URL tied to a specific version so cached signatures match the package. After replacing an asset in an already published release, run Actions → Update appcast → Run workflow to refresh the feed.
+
+The EdDSA private key is stored in the local keychain and the repository's `SPARKLE_PRIVATE_KEY` Actions secret, never in Git. The app contains only the public key (`SUPublicEDKey`).
 
 ## Code layout
 

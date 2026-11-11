@@ -1,0 +1,67 @@
+name: Update appcast
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-appcast
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download Sparkle
+        run: |
+          set -euo pipefail
+          curl -fLsS 'https://github.com/sparkle-project/Sparkle/releases/download/2.10.1/Sparkle-for-Swift-Package-Manager.zip' -o "$RUNNER_TEMP/Sparkle.zip"
+          echo "4c2e48a3e50ebcc2c88a58a4c7264a1a99c3c31857ce754357afb9cdb323022a  $RUNNER_TEMP/Sparkle.zip" | shasum -a 256 -c -
+          ditto -x -k "$RUNNER_TEMP/Sparkle.zip" "$RUNNER_TEMP/Sparkle"
+
+      - name: Download latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$RUNNER_TEMP/release.json"
+          mkdir -p "$RUNNER_TEMP/updates"
+          release_tag="$(python3 -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/release.json"))["tag_name"])')"
+          gh release download "$release_tag" --repo "$GITHUB_REPOSITORY" --pattern 'ClipCV.dmg' --dir "$RUNNER_TEMP/updates"
+
+      - name: Generate signed appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SPARKLE_PRIVATE_KEY"
+          release_tag="$(python3 -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/release.json"))["tag_name"])')"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$RUNNER_TEMP/Sparkle/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/" \
+            --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$release_tag" \
+            --maximum-versions 1 --maximum-deltas 0 \
+            "$RUNNER_TEMP/updates"
+          python3 scripts/validate_appcast.py "$RUNNER_TEMP/updates/appcast.xml" appcast.xml "$RUNNER_TEMP/release.json"
+          cp "$RUNNER_TEMP/updates/appcast.xml" appcast.xml
+
+      - name: Publish appcast
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- appcast.xml; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add appcast.xml
+          git commit -m 'Update appcast for latest release'
+          git push

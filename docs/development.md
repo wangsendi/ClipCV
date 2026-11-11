@@ -11,7 +11,7 @@
 ## 构建
 
 ```bash
-git clone https://github.com/wangsendi/ClipCV-MacOs.git
+git clone https://github.com/wangsendi/ClipCV.git
 cd ClipCV
 open ClipCV.xcodeproj   # Xcode 中 ⌘R 运行
 ```
@@ -41,15 +41,16 @@ GitHub Actions 工作流：[`.github/workflows/ci.yml`](../.github/workflows/ci.
 
 ## 发布流程
 
-ClipCV 采用本地手动发布（与 Maccy 类似），脚本不上传仓库：
+1. 在 Xcode 设置 Version；Build 跟随 Version，每次发布都应递增。
+2. 本地构建 Release，完成 Developer ID 签名、公证并打包为 `ClipCV.dmg`。
+3. 在 [ClipCV Releases](https://github.com/wangsendi/ClipCV/releases) 创建对应版本的 Release（例如 `v1.0.2`），上传 `ClipCV.dmg` 后点击 Publish release。
+4. [Update appcast](../.github/workflows/update-appcast.yml) 自动读取安装包的版本和系统要求，生成 EdDSA 签名、校验并提交 `appcast.xml`，无需手动修改。
 
-1. **打包签名公证**：`scripts/release.sh`（本地脚本，已 gitignore）
-   - 构建 Release → Developer ID 签名 → 公证 → 打 zip
-2. **生成 appcast**：`scripts/make-appcast.sh` 生成 EdDSA 签名的 `appcast.xml`
-3. **提交更新**：将 `appcast.xml` 与 zip 的下载链接提交到 `main` 分支
-   - SUFeedURL 指向 `raw.githubusercontent.com/.../main/appcast.xml`，用户端自动检测到更新
+应用的更新源为 `https://raw.githubusercontent.com/wangsendi/ClipCV/main/appcast.xml`。安装包首次切换到新更新源后，需要手动下载安装一次；之后发布新版即可自动检测更新。
 
-密钥安全：EdDSA 私钥仅存本机钥匙串，**绝不**进入仓库；仓库只包含公钥（`SUPublicEDKey`）。
+普通下载入口可使用 `https://github.com/wangsendi/ClipCV/releases/latest/download/ClipCV.dmg`。Appcast 使用具体版本的固定下载地址，避免缓存的签名与安装包不一致。替换已发布 Release 的安装包后，手动运行 Actions → Update appcast → Run workflow 刷新更新源。
+
+EdDSA 私钥保存在本机钥匙串和仓库的 `SPARKLE_PRIVATE_KEY` Actions secret 中，不提交到 Git；应用只包含公钥（`SUPublicEDKey`）。
 
 ## 代码结构
 

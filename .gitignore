@@ -7,5 +7,6 @@ xcuserdata/
 *.xcuserstate
 .DS_Store
 .cursor/
-scripts/
+/scripts/*
+!/scripts/validate_appcast.py
 default.profraw

@@ -11,6 +11,6 @@
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
       <enclosure url="https://github.com/wangsendi/ClipCV-MacOs/releases/download/v1.0.2/ClipCV.dmg" length="4276371" type="application/octet-stream" sparkle:edSignature="aMZebUyS71aTg4iQPF43rl6UVwcLy1S5C0QZlPL/66zwbd8elgHkoyauWwcCzlyCz29vy+VEts8D1WuKk69zDg==" />
     </item>
-    <link>https://raw.githubusercontent.com/wangsendi/ClipCV-MacOs/main/appcast.xml</link>
+    <link>https://raw.githubusercontent.com/wangsendi/ClipCV/main/appcast.xml</link>
   </channel>
 </rss>
