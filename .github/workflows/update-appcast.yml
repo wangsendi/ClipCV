@@ -16,10 +16,23 @@ jobs:
   update:
     if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
     runs-on: macos-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
+
+      - name: Download latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$RUNNER_TEMP/release.json"
+          mkdir -p "$RUNNER_TEMP/updates"
+          release_tag="$(jq -r '.tag_name' "$RUNNER_TEMP/release.json")"
+          gh release download "$release_tag" --repo "$GITHUB_REPOSITORY" --pattern 'ClipCV.dmg' --dir "$RUNNER_TEMP/updates"
+          printf 'tag=%s\n' "$release_tag" >> "$GITHUB_OUTPUT"
 
       - name: Download Sparkle
         run: |
@@ -28,27 +41,17 @@ jobs:
           echo "4c2e48a3e50ebcc2c88a58a4c7264a1a99c3c31857ce754357afb9cdb323022a  $RUNNER_TEMP/Sparkle.zip" | shasum -a 256 -c -
           ditto -x -k "$RUNNER_TEMP/Sparkle.zip" "$RUNNER_TEMP/Sparkle"
 
-      - name: Download latest release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$RUNNER_TEMP/release.json"
-          mkdir -p "$RUNNER_TEMP/updates"
-          release_tag="$(python3 -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/release.json"))["tag_name"])')"
-          gh release download "$release_tag" --repo "$GITHUB_REPOSITORY" --pattern 'ClipCV.dmg' --dir "$RUNNER_TEMP/updates"
-
       - name: Generate signed appcast
         env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           test -n "$SPARKLE_PRIVATE_KEY"
-          release_tag="$(python3 -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/release.json"))["tag_name"])')"
           printf '%s' "$SPARKLE_PRIVATE_KEY" | "$RUNNER_TEMP/Sparkle/bin/generate_appcast" \
             --ed-key-file - \
-            --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/" \
-            --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$release_tag" \
+            --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/" \
+            --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" \
             --maximum-versions 1 --maximum-deltas 0 \
             "$RUNNER_TEMP/updates"
           python3 scripts/validate_appcast.py "$RUNNER_TEMP/updates/appcast.xml" "$RUNNER_TEMP/release.json"
@@ -64,4 +67,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add appcast.xml
           git commit -m 'Update appcast for latest release'
+          git pull --rebase origin main
           git push
