@@ -1,12 +1,7 @@
-# ClipCV Documentation
+# Documentation
 
-Welcome to the ClipCV documentation hub.
+[Project home](../README.en.md) · [中文](README.md)
 
-| Document | Description |
-| --- | --- |
-| [FAQ](faq.en.md) | Common questions about installing, using, and updating |
-| [Privacy](privacy.en.md) | Details on data storage, permissions, and network access |
-| [Development Guide](development.en.md) | How to build, test, and release ClipCV |
-
-- For a quick start, see the [README](../README.md)
-- 中文文档：[docs/README.md](README.md)
+- [FAQ](faq.en.md): installation, shortcuts, history, and sync.
+- [Privacy](privacy.en.md): storage, network access, and data removal.
+- [Development](development.en.md): build, test, and release.

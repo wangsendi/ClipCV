@@ -1,48 +1,29 @@
 # FAQ
 
-## Installation
+[Home](../README.en.md) · [中文](faq.md)
 
-### macOS says the developer can't be verified
-ClipCV is signed with a Developer ID and notarized. If you still see the warning, open **System Settings → Privacy & Security** and click "Open Anyway". Or from the terminal:
+## The app won't open or paste automatically
 
-```bash
-xattr -d com.apple.quarantine /Applications/ClipCV.app
-```
+If macOS blocks the app, choose **Open Anyway** in **System Settings → Privacy & Security**. Automatic paste requires Accessibility permission for ClipCV.
 
-### What permissions does ClipCV need?
-- **Accessibility**: required for global hotkeys and automatic paste. You'll be prompted on first launch.
-- No Full Disk Access — ClipCV never reads anything beyond the clipboard.
+## Shortcuts don't respond
 
-## Usage
+Check for conflicts with other apps or input methods, then rebind the shortcut in Settings. `⌃Space` often conflicts with input switching.
 
-### Hotkeys don't work
-1. Make sure Accessibility permission is granted in System Settings
-2. Check for conflicts with other apps; you can rebind every shortcut in Settings
-3. If ⌃Space conflicts with your input method switcher, change the preview hotkey
+## Copies aren't appearing in history
 
-### How do I keep password managers out of the history?
-Add the app's bundle ID (e.g. `com.agilebits.onepassword`) under **Settings → Ignore**, or use "Ignore next copy". Pasteboard types from 1Password, KeeWeb, and other password managers are ignored by default.
+Check whether recording is paused, "Ignore next copy" is enabled, or **Settings → Ignore** filters out the app, pasteboard type, or text.
 
-### How much space does history use?
-Defaults to a 300 MB / 200-item cap (adjustable in **Settings → Storage**). You can also downscale images on save to save space.
+## How much space does history use?
 
-### How does pinning work?
-Pinned items get a single-key letter (assigned in `QWEASDZXC` order by default). Press that letter in the history panel to paste instantly — no search needed. "Pin to desktop" turns an item into a floating window you can drag content out of.
+Defaults are 200 items and 300 MB, adjustable in **Settings → Storage**. Cleanup removes the oldest unpinned items; pinned items remain. Images can be downscaled on save.
 
-### Which content types are supported?
-Text, links, RTF/HTML rich text, PNG/TIFF images, and file paths. Each type can be toggled in **Settings → Storage**.
+## How does iCloud sync work?
 
-### How does iCloud sync work?
-Enable it in **Settings → Advanced** (requires an Apple ID signed into iCloud). History syncs across your Macs via CloudKit; a relaunch is needed after changing the setting. Both settings use the same local database, so disabling sync keeps recording locally and preserves your history. Off by default.
+Sign in to iCloud, then enable sync in **Settings → Advanced**. It is off by default and changes require a relaunch. Disabling sync preserves local history and recording. Pausing recording does not disable iCloud sync.
 
-## Updates
+## How do I update?
 
-### How do updates work?
-ClipCV uses [Sparkle](https://sparkle-project.org) (checks daily by default). You can also check manually via **Settings → General → Check Now**. Updates are verified with an EdDSA signature.
+Use **Settings → General → Check Now**, or enable automatic checks. If your network blocks updates, download from [Releases](https://github.com/wangsendi/ClipCV/releases/latest).
 
-### Update check fails?
-The appcast is hosted on GitHub (raw.githubusercontent.com). If your network blocks it, download manually from [Releases](https://github.com/wangsendi/ClipCV/releases).
-
----
-
-More questions? [Open an issue](https://github.com/wangsendi/ClipCV/issues).
+For other questions, [open an issue](https://github.com/wangsendi/ClipCV/issues).
