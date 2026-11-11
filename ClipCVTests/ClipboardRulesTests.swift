@@ -87,11 +87,19 @@ struct ClipboardRulesTests {
     }
 
     @Test(arguments: [1, 2], [false, true])
-    func restoringFileHistoryDoesNotExposeFilenameText(count: Int, removeFormatting: Bool) throws {
+    func restoringFileHistoryPreservesRepresentationsWithFilesFirst(count: Int, removeFormatting: Bool) throws {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
+        let directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
         let urls = ["王森迪1108.docx", "ClipCV.xcodeproj"].prefix(count).map {
-            FileManager.default.temporaryDirectory.appendingPathComponent($0)
+            directory.appendingPathComponent($0)
+        }
+        try Data("file fixture".utf8).write(to: urls[0])
+        if count > 1 {
+            try FileManager.default.createDirectory(at: urls[1], withIntermediateDirectories: true)
         }
         let files = urls.map { ClipboardPayload(type: fileType, data: Data($0.absoluteString.utf8)) }
         let text = ClipboardPayload(type: stringType, data: Data("王森迪1108.docx".utf8))
@@ -108,9 +116,38 @@ struct ClipboardRulesTests {
         ) as? [URL])
         #expect(restored == urls)
         #expect(pasteboard.pasteboardItems?.count == count)
-        #expect(pasteboard.canReadObject(forClasses: [NSString.self], options: nil) == false)
+        #expect(pasteboard.pasteboardItems?.first?.types.first == .fileURL)
+        #expect(pasteboard.string(forType: .string) == "王森迪1108.docx")
         #expect(pasteboard.propertyList(forType: .init("NSFilenamesPboardType")) as? [String] == urls.map(\.path))
         #expect(pasteboard.data(forType: .init(ClipboardRules.Kind.internalMarker)) == Data([1]))
+    }
+
+    @Test func restoringFinderFileReferencePreservesItsOriginalBytes() throws {
+        let directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("中文 空格 100%.docx")
+        let content = Data("file fixture".utf8)
+        try content.write(to: file)
+        let reference = try #require(CFURLCreateFileReferenceURL(nil, file as CFURL, nil)).takeRetainedValue()
+        let raw = CFURLGetString(reference) as String
+        let data = Data(raw.utf8)
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+
+        ClipboardWriter.write([ClipboardPayload(type: fileType, data: data)], to: pasteboard)
+
+        #expect(raw.hasPrefix("file:///.file/id="))
+        #expect(pasteboard.data(forType: .fileURL) == data)
+        let restored = try #require(pasteboard.readObjects(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL])
+        #expect(restored.count == 1)
+        let restoredFile = try #require(restored.first)
+        #expect(try Data(contentsOf: restoredFile) == content)
+        let path = try #require((pasteboard.propertyList(forType: .init("NSFilenamesPboardType")) as? [String])?.first)
+        #expect(try Data(contentsOf: URL(fileURLWithPath: path)) == content)
     }
 
     @Test func restoringRichTextPreservesFormattingInOneItem() {
