@@ -1,8 +1,3 @@
-//
-//  SettingsOptionTypes.swift
-//  ClipCV
-//
-
 import Foundation
 
 enum SearchMode: String, CaseIterable, Identifiable {

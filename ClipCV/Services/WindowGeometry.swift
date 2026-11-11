@@ -1,8 +1,3 @@
-//
-//  WindowGeometry.swift
-//  ClipCV
-//
-
 import AppKit
 
 enum WindowGeometry {

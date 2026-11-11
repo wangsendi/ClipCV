@@ -1,8 +1,3 @@
-//
-//  AppModelContainer.swift
-//  ClipCV
-//
-
 import Foundation
 import SwiftData
 
@@ -41,7 +36,6 @@ enum AppModelContainer {
             return container
         }
 
-        // Corrupt store: wipe matching files then recreate.
         removeStoreFiles(at: config.url)
 
         do {

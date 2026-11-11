@@ -1,8 +1,3 @@
-//
-//  ClipboardRules.swift
-//  ClipCV
-//
-
 import AppKit
 import Foundation
 
@@ -65,15 +60,16 @@ enum ClipboardRules {
 
     static func normalizedURLString(from contents: [ClipboardPayload]) -> String? {
         guard let text = plainText(from: contents)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              let url = URL(string: text),
-              let scheme = url.scheme?.lowercased(),
+              var components = URLComponents(string: text),
+              let scheme = components.scheme?.lowercased(),
               scheme == "http" || scheme == "https"
         else { return nil }
 
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let filtered = components?.queryItems?.filter { !trackingParams.contains($0.name.lowercased()) }
-        components?.queryItems = (filtered?.isEmpty == true) ? nil : filtered
-        return components?.string?.lowercased()
+        components.scheme = scheme
+        components.host = components.host?.lowercased()
+        let filtered = components.queryItems?.filter { !trackingParams.contains($0.name.lowercased()) }
+        components.queryItems = (filtered?.isEmpty == true) ? nil : filtered
+        return components.string
     }
 
     static func normalize(_ items: [[ClipboardPayload]], enabled: Set<String>) -> [ClipboardPayload] {
@@ -93,7 +89,6 @@ enum ClipboardRules {
         return payloads.filter { $0.type != Kind.tiff }
     }
 
-    /// Scale image dimensions to `scalePercent` of original (e.g. 50 → half size). 0 or 100 keeps originals.
     static func prepareForStorage(
         _ payloads: [ClipboardPayload],
         scalePercent: Int
@@ -135,7 +130,6 @@ enum ClipboardRules {
         return min(unpinned, total - limit)
     }
 
-    // 0 limitBytes = no size cap (disable trimming by bytes).
     static func deletionCountForSize(unpinnedSizesOldestFirst: [Int64], totalBytes: Int64, limitBytes: Int64) -> Int {
         guard limitBytes > 0, totalBytes > limitBytes else { return 0 }
         var remaining = totalBytes
@@ -152,7 +146,7 @@ enum ClipboardRules {
         item.storedContents.reduce(Int64(0)) { $0 + Int64($1.value.count) }
     }
 
-    /// Stable stored labels — resolved via `localizedTitle(_:)` at display time.
+    // 保存标题标识，让历史标题能随界面语言切换。
     enum TitleToken {
         static let image = "__clipcv.image__"
         static let richText = "__clipcv.richText__"
@@ -176,11 +170,11 @@ enum ClipboardRules {
 
     static func localizedTitle(_ stored: String) -> String {
         switch stored {
-        case TitleToken.image, "图片", "Image":
+        case TitleToken.image:
             return L10n.t(.categoryImage)
-        case TitleToken.richText, "富文本", "Rich Text":
+        case TitleToken.richText:
             return L10n.t(.richTextTitle)
-        case TitleToken.generic, "剪贴板内容", "Clipboard Content":
+        case TitleToken.generic:
             return L10n.t(.clipboardContent)
         default:
             return stored
@@ -188,7 +182,7 @@ enum ClipboardRules {
     }
 
     static func isGenericImageTitle(_ stored: String) -> Bool {
-        stored == TitleToken.image || stored == "图片" || stored == "Image"
+        stored == TitleToken.image
     }
 
     static func collapsedTitle(from text: String, limit: Int = 200) -> String? {

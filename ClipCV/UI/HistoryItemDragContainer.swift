@@ -1,8 +1,3 @@
-//
-//  HistoryItemDragContainer.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftUI
 

@@ -1,8 +1,3 @@
-//
-//  StorageSettingsPane.swift
-//  ClipCV
-//
-
 import SwiftData
 import SwiftUI
 

@@ -18,10 +18,6 @@ enum ThumbnailCache: Sendable {
         cache.setObject(image, forKey: cacheKey(id, maxSide), cost: Int(pixels * 4))
     }
 
-    nonisolated static func clear() {
-        cache.removeAllObjects()
-    }
-
     nonisolated static func makeCancellable(from data: Data, maxSide: CGFloat) async -> NSImage? {
         guard !Task.isCancelled else { return nil }
         let decode = Task.detached(priority: .userInitiated) {

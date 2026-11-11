@@ -1,8 +1,3 @@
-//
-//  SettingsRootView.swift
-//  ClipCV
-//
-
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable, Identifiable, Hashable {

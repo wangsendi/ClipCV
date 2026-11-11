@@ -1,8 +1,3 @@
-//
-//  ClipboardMonitor.swift
-//  ClipCV
-//
-
 import AppKit
 import Foundation
 import SwiftData
@@ -48,9 +43,9 @@ final class ClipboardMonitor {
         save()
     }
 
-    func delete(_ item: ClipboardItem) {
-        ThumbnailCache.clear()
-        context.delete(item)
+    func delete(_ items: [ClipboardItem]) {
+        guard !items.isEmpty else { return }
+        items.forEach(context.delete)
         save()
     }
 
@@ -162,10 +157,7 @@ final class ClipboardMonitor {
     }
 
     func clear(includingPinned: Bool) {
-        fetchAll()
-            .filter { includingPinned || !$0.pinned }
-            .forEach(context.delete)
-        save()
+        delete(fetchAll().filter { includingPinned || !$0.pinned })
         guard settings.clearSystemClipboard else { return }
         NSPasteboard.general.clearContents()
         changeCount = NSPasteboard.general.changeCount
@@ -176,7 +168,6 @@ final class ClipboardMonitor {
         clear(includingPinned: false)
     }
 
-    // Split poll so pasteboard read, upsert, and image enrichment stay under 40 lines each.
     private func poll() {
         let pasteboard = NSPasteboard.general
         guard pasteboard.changeCount != changeCount else { return }
@@ -306,18 +297,19 @@ final class ClipboardMonitor {
 
         let sizeLimitMB = settings.historySizeLimitMB
         guard sizeLimitMB > 0 else { return }
-        guard let remaining = try? context.fetch(descriptor) else { return }
-        let totalBytes = remaining.reduce(Int64(0)) { $0 + ClipboardRules.byteSize(of: $1) }
+        let remaining = Array(unpinned.dropFirst(byCount))
+        let unpinnedSizes = remaining.map(ClipboardRules.byteSize(of:))
+        let pinnedBytes = all.lazy.filter(\.pinned).reduce(Int64(0)) {
+            $0 + ClipboardRules.byteSize(of: $1)
+        }
+        let totalBytes = pinnedBytes + unpinnedSizes.reduce(0, +)
         let limitBytes = Int64(sizeLimitMB) * 1024 * 1024
-        let unpinnedSizes = remaining
-            .filter { !$0.pinned }
-            .map(ClipboardRules.byteSize(of:))
         let bySize = ClipboardRules.deletionCountForSize(
             unpinnedSizesOldestFirst: unpinnedSizes,
             totalBytes: totalBytes,
             limitBytes: limitBytes
         )
-        remaining.filter { !$0.pinned }.prefix(bySize).forEach(context.delete)
+        remaining.prefix(bySize).forEach(context.delete)
     }
 
     private func save() {

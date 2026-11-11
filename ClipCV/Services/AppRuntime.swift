@@ -1,8 +1,3 @@
-//
-//  AppRuntime.swift
-//  ClipCV
-//
-
 import Foundation
 import SwiftData
 

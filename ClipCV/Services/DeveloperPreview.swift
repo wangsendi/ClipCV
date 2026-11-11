@@ -1,8 +1,3 @@
-//
-//  DeveloperPreview.swift
-//  ClipCV
-//
-
 import Foundation
 import SwiftUI
 

@@ -1,19 +1,12 @@
-//
-//  SoftwareUpdater.swift
-//  ClipCV
-//
-
 import Foundation
 import Observation
 import Sparkle
 
-/// Sparkle wrapper — same shape as Maccy's SoftwareUpdater.
 @MainActor
 @Observable
 final class SoftwareUpdater {
     static let shared = SoftwareUpdater()
 
-    /// False until `SUPublicEDKey` is a real EdDSA public key (and not under XCTest).
     private(set) var isAvailable = false
 
     var automaticallyChecksForUpdates = false {

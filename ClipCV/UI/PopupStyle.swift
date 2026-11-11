@@ -1,8 +1,3 @@
-//
-//  PopupStyle.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftUI
 

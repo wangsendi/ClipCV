@@ -1,8 +1,3 @@
-//
-//  SettingsChrome.swift
-//  ClipCV
-//
-
 import SwiftUI
 
 enum SettingsMetrics {

@@ -1,9 +1,3 @@
-//
-//  ClipboardItem.swift
-//  ClipCV
-//
-
-import AppKit
 import Foundation
 import SwiftData
 

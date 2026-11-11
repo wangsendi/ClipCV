@@ -1,8 +1,3 @@
-//
-//  HotkeyManager.swift
-//  ClipCV
-//
-
 import Carbon
 import Foundation
 

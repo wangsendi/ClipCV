@@ -1,8 +1,3 @@
-//
-//  ClipCVApp.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftData
 import SwiftUI
@@ -59,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let hotkeys else { return }
             capturing ? hotkeys.unregister() : hotkeys.register(settings.hotkey)
         }
-        // Keep a strong reference so Sparkle auto-checks from launch (not only when Settings opens).
+        // 启动时初始化自动更新，避免只在打开设置后才开始检查。
         _ = SoftwareUpdater.shared
     }
 

@@ -1,8 +1,3 @@
-//
-//  ClipboardWriter.swift
-//  ClipCV
-//
-
 import AppKit
 
 enum ClipboardWriter {

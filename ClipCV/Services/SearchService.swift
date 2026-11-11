@@ -1,8 +1,3 @@
-//
-//  SearchService.swift
-//  ClipCV
-//
-
 import Foundation
 
 enum SearchService {

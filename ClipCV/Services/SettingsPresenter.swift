@@ -1,8 +1,3 @@
-//
-//  SettingsPresenter.swift
-//  ClipCV
-//
-
 import AppKit
 
 @MainActor

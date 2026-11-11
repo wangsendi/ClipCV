@@ -1,8 +1,3 @@
-//
-//  DesktopPinSnapshot.swift
-//  ClipCV
-//
-
 import AppKit
 import Foundation
 

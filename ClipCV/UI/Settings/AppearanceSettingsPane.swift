@@ -1,8 +1,3 @@
-//
-//  AppearanceSettingsPane.swift
-//  ClipCV
-//
-
 import SwiftUI
 
 struct AppearanceSettingsPane: View {

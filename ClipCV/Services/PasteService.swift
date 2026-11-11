@@ -1,8 +1,3 @@
-//
-//  PasteService.swift
-//  ClipCV
-//
-
 import AppKit
 import ApplicationServices
 

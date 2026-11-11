@@ -1,8 +1,3 @@
-//
-//  MenuBarController.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftData
 
@@ -76,7 +71,6 @@ final class MenuBarController: NSObject {
         refreshAppearance()
     }
 
-    // Split wiring by domain so each block stays under 40 lines.
     private func wireActions() {
         wireClipboardActions()
         wirePanelActions()
@@ -93,8 +87,8 @@ final class MenuBarController: NSObject {
         actions.pastePlain = { [weak self] item in
             self?.copy(item, thenPaste: true, plain: true)
         }
-        actions.delete = { [weak self] item in
-            self?.monitor.delete(item)
+        actions.delete = { [weak self] items in
+            self?.monitor.delete(items)
         }
         actions.applyEdit = { [weak self] item, alias, content, pinKey in
             self?.monitor.applyEdit(item, alias: alias, content: content, pinKey: pinKey) ?? .saved

@@ -1,8 +1,3 @@
-//
-//  DesktopPinController.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftUI
 

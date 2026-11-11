@@ -1,8 +1,3 @@
-//
-//  HotkeySearchPinTests.swift
-//  ClipCVTests
-//
-
 import AppKit
 import Testing
 @testable import ClipCV
@@ -76,6 +71,29 @@ struct HotkeySearchPinTests {
             return
         }
         #expect(max(small.size.width, small.size.height) <= 100.5)
+    }
+
+    @Test func OCRRejectsNonImageData() async {
+        let text = await OCRService.recognizeText(in: Data("Not an image".utf8))
+        #expect(text == nil)
+    }
+
+    @Test @MainActor func OCRRecognizesImageText() async throws {
+        let image = NSImage(size: NSSize(width: 600, height: 160))
+        image.lockFocus()
+        NSColor.white.setFill()
+        NSRect(x: 0, y: 0, width: 600, height: 160).fill()
+        NSAttributedString(string: "CLIPCV 2468", attributes: [
+            .font: NSFont.monospacedSystemFont(ofSize: 50, weight: .bold),
+            .foregroundColor: NSColor.black,
+        ]).draw(at: NSPoint(x: 20, y: 50))
+        image.unlockFocus()
+        let data = try #require(image.tiffRepresentation)
+
+        let result = await OCRService.recognizeText(in: data)
+
+        let text = try #require(result)
+        #expect(text.contains("2468"))
     }
 
     @Test func preferPNGDropsTIFFWhenBothPresent() {

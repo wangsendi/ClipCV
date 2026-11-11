@@ -1,8 +1,3 @@
-//
-//  IgnoreSettingsPane.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers

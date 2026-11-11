@@ -1,8 +1,3 @@
-//
-//  GeneralSettingsPane.swift
-//  ClipCV
-//
-
 import AppKit
 import ServiceManagement
 import SwiftUI

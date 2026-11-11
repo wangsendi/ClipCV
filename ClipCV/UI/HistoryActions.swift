@@ -1,8 +1,3 @@
-//
-//  HistoryActions.swift
-//  ClipCV
-//
-
 import Foundation
 
 enum ApplyEditResult: Equatable {
@@ -18,7 +13,7 @@ final class HistoryActions {
     var copy: (ClipboardItem) -> Void = { _ in }
     var paste: (ClipboardItem) -> Void = { _ in }
     var pastePlain: (ClipboardItem) -> Void = { _ in }
-    var delete: (ClipboardItem) -> Void = { _ in }
+    var delete: ([ClipboardItem]) -> Void = { _ in }
     var applyEdit: (ClipboardItem, String, String?, String?) -> ApplyEditResult = { _, _, _, _ in .saved }
     var copyText: (String) -> Void = { _ in }
     var recognizeOCR: (ClipboardItem) async -> String? = { _ in nil }

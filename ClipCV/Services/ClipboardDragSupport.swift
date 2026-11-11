@@ -1,8 +1,3 @@
-//
-//  ClipboardDragSupport.swift
-//  ClipCV
-//
-
 import AppKit
 
 let clipCVPinReorderType = NSPasteboard.PasteboardType("wangsendi.ClipCV.pin-reorder")

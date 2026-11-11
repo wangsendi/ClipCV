@@ -551,7 +551,7 @@ private struct HistoryContentView: View {
     private func deleteSelection() {
         let targets = actionTargets
         guard !targets.isEmpty else { return }
-        targets.forEach(actions.delete)
+        actions.delete(targets)
         selectedIDs = []
     }
 

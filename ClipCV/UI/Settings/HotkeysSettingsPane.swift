@@ -1,8 +1,3 @@
-//
-//  HotkeysSettingsPane.swift
-//  ClipCV
-//
-
 import SwiftUI
 
 struct HotkeysSettingsPane: View {

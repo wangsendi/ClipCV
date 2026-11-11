@@ -1,8 +1,3 @@
-//
-//  HistoryCategory.swift
-//  ClipCV
-//
-
 import AppKit
 import Foundation
 import SwiftUI

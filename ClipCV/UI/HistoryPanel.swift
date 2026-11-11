@@ -1,8 +1,3 @@
-//
-//  HistoryPanel.swift
-//  ClipCV
-//
-
 import AppKit
 import SwiftData
 import SwiftUI

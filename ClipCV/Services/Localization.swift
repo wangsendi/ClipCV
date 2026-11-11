@@ -1,8 +1,3 @@
-//
-//  Localization.swift
-//  ClipCV
-//
-
 import Foundation
 
 enum AppLanguage: String, CaseIterable, Identifiable {

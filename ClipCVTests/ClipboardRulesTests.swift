@@ -1,8 +1,3 @@
-//
-//  ClipboardRulesTests.swift
-//  ClipCVTests
-//
-
 import AppKit
 import Testing
 @testable import ClipCV
@@ -46,6 +41,26 @@ struct ClipboardRulesTests {
         #expect(!ClipboardRules.isDuplicate(latest: first, new: different))
     }
 
+    @Test(arguments: [
+        ("https://example.com/Report.pdf", "https://example.com/report.pdf"),
+        ("https://example.com/?token=AbC", "https://example.com/?token=abc"),
+        ("https://example.com/?Token=abc", "https://example.com/?token=abc"),
+        ("https://example.com/#Section", "https://example.com/#section"),
+    ])
+    func distinctURLsAreNotMerged(_ urls: (String, String)) {
+        let first = [ClipboardPayload(type: stringType, data: Data(urls.0.utf8))]
+        let second = [ClipboardPayload(type: stringType, data: Data(urls.1.utf8))]
+        #expect(!ClipboardRules.isDuplicate(latest: first, new: second))
+    }
+
+    @Test func URLDeduplicationNormalizesHostAndRemovesTrackingParameters() {
+        let original = "HTTPS://EXAMPLE.COM/Report.pdf?token=AbC&utm_source=test"
+        let cleaned = "https://example.com/Report.pdf?token=AbC"
+        let first = [ClipboardPayload(type: stringType, data: Data(original.utf8))]
+        let second = [ClipboardPayload(type: stringType, data: Data(cleaned.utf8))]
+        #expect(ClipboardRules.isDuplicate(latest: first, new: second))
+    }
+
     @Test func plainPasteKeepsOnlyStringWhenTextExists() {
         let text = ClipboardPayload(type: stringType, data: Data("标题".utf8))
         let rich = ClipboardPayload(type: rtfType, data: Data("{\\rtf1 rich}".utf8))
@@ -71,8 +86,13 @@ struct ClipboardRulesTests {
         let image = ClipboardPayload(type: pngType, data: Data([0x00, 0x01]))
         #expect(ClipboardRules.title(for: [image]) == ClipboardRules.TitleToken.image)
         #expect(ClipboardRules.localizedTitle(ClipboardRules.TitleToken.image) == L10n.t(.categoryImage))
-        #expect(ClipboardRules.localizedTitle("图片") == L10n.t(.categoryImage))
-        #expect(ClipboardRules.isGenericImageTitle("Image"))
+        #expect(ClipboardRules.isGenericImageTitle(ClipboardRules.TitleToken.image))
+    }
+
+    @Test(arguments: ["图片", "Image", "富文本", "Rich Text", "剪贴板内容", "Clipboard Content"])
+    func literalTextTitlesArePreserved(_ title: String) {
+        #expect(ClipboardRules.localizedTitle(title) == title)
+        #expect(!ClipboardRules.isGenericImageTitle(title))
     }
 
     @Test func deletionCountRemovesOldestUnpinnedOverflow() {

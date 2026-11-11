@@ -1,10 +1,4 @@
-//
-//  ClipCVTests.swift
-//  ClipCVTests
-//
-//  Created by wsd on 2026/11/7.
-//
-
+import AppKit
 import Foundation
 import SwiftData
 import Testing
@@ -123,10 +117,81 @@ struct ClipCVTests {
         #expect(!container.mainContext.hasChanges)
     }
 
-    private func makeEditFixture() throws -> (ModelContainer, ClipboardMonitor, ClipboardItem) {
+    @Test func deletingSelectionSavesOnceAndPreservesOtherThumbnails() async throws {
+        let (container, monitor, _) = try makeEditFixture()
+        let context = container.mainContext
+        let targets = try context.fetch(FetchDescriptor<ClipboardItem>())
+        let remaining = ClipboardItem(title: "Keep", contents: [
+            ClipboardContent(type: ClipboardRules.Kind.png, value: Data([0x89, 0x50])),
+        ])
+        context.insert(remaining)
+        try context.save()
+        let thumbnail = NSImage(size: NSSize(width: 8, height: 8))
+        ThumbnailCache.store(thumbnail, id: remaining.identifier, maxSide: 80)
+
+        await confirmation("Batch deletion saves once", expectedCount: 1) { saved in
+            let observer = NotificationCenter.default.addObserver(
+                forName: ModelContext.didSave, object: context, queue: nil
+            ) { _ in saved() }
+            defer { NotificationCenter.default.removeObserver(observer) }
+            monitor.delete(targets)
+        }
+
+        let readContext = ModelContext(container)
+        let stored = try readContext.fetch(FetchDescriptor<ClipboardItem>())
+        #expect(stored.map(\.identifier) == [remaining.identifier])
+        #expect(try readContext.fetchCount(FetchDescriptor<ClipboardContent>()) == 1)
+        #expect(!context.hasChanges)
+        #expect(ThumbnailCache.cached(id: remaining.identifier, maxSide: 80) === thumbnail)
+    }
+
+    @Test(arguments: [
+        (limit: 4, megabytes: 0, titles: ["Pinned", "Old", "Middle", "New"]),
+        (limit: 3, megabytes: 0, titles: ["Pinned", "Middle", "New"]),
+        (limit: 4, megabytes: 4, titles: ["Pinned", "Middle", "New"]),
+        (limit: 4, megabytes: 3, titles: ["Pinned", "New"]),
+        (limit: 3, megabytes: 3, titles: ["Pinned", "New"]),
+        (limit: 1, megabytes: 0, titles: ["Pinned"]),
+        (limit: 4, megabytes: 1, titles: ["Pinned"]),
+        (limit: 4, megabytes: 5, titles: ["Pinned", "Old", "Middle", "New"]),
+    ])
+    func trimmingHonorsCountAndSizeLimits(
+        _ testCase: (limit: Int, megabytes: Int, titles: [String])
+    ) throws {
+        let (container, settings, monitor) = try makeHistoryFixture()
+        settings.historySizeLimitMB = testCase.megabytes
+        for (index, title) in ["Pinned", "Old", "Middle", "New"].enumerated() {
+            let bytes = (index == 0 ? 2 : 1) * 1024 * 1024
+            container.mainContext.insert(ClipboardItem(
+                createdAt: Date(timeIntervalSince1970: Double(index)),
+                title: title, pinned: index == 0,
+                contents: [ClipboardContent(type: ClipboardRules.Kind.png, value: Data(repeating: 0, count: bytes))]
+            ))
+        }
+        try container.mainContext.save()
+
+        withExtendedLifetime(monitor) {
+            settings.historyLimit = testCase.limit
+        }
+
+        let readContext = ModelContext(container)
+        let remaining = try readContext.fetch(FetchDescriptor<ClipboardItem>())
+        #expect(Set(remaining.map(\.title)) == Set(testCase.titles))
+        #expect(try readContext.fetchCount(FetchDescriptor<ClipboardContent>()) == remaining.count)
+        #expect(!container.mainContext.hasChanges)
+    }
+
+    private func makeHistoryFixture() throws -> (ModelContainer, AppSettings, ClipboardMonitor) {
         let schema = Schema([ClipboardItem.self, ClipboardContent.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: schema, configurations: [config])
+        let defaults = try #require(UserDefaults(suiteName: "ClipCVTests.\(UUID().uuidString)"))
+        let settings = AppSettings(defaults: defaults)
+        return (container, settings, ClipboardMonitor(context: container.mainContext, settings: settings))
+    }
+
+    private func makeEditFixture() throws -> (ModelContainer, ClipboardMonitor, ClipboardItem) {
+        let (container, _, monitor) = try makeHistoryFixture()
         let context = container.mainContext
         let item = ClipboardItem(
             title: "Original text", alias: "Original alias", pinned: true, pinKey: "Q",
@@ -135,8 +200,6 @@ struct ClipCVTests {
         context.insert(item)
         context.insert(ClipboardItem(title: "Other item", pinned: true, pinKey: "W"))
         try context.save()
-        let defaults = try #require(UserDefaults(suiteName: "ClipCVTests.\(UUID().uuidString)"))
-        let monitor = ClipboardMonitor(context: context, settings: AppSettings(defaults: defaults))
         return (container, monitor, item)
     }
 }
