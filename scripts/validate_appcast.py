@@ -10,11 +10,7 @@ SPARKLE = "{http://www.andymatuschak.org/xml-namespaces/sparkle}"
 ET.register_namespace("sparkle", SPARKLE[1:-1])
 
 
-def version(value):
-    return tuple(int(part) for part in value.split(".")) + (0,) * (3 - len(value.split(".")))
-
-
-def validate(generated, previous, release):
+def validate(generated, release):
     tree = ET.parse(generated)
     channel = tree.find("channel")
     item = channel.find("item")
@@ -22,13 +18,8 @@ def validate(generated, previous, release):
     build = item.findtext(SPARKLE + "version")
     display = item.findtext(SPARKLE + "shortVersionString")
     expected = release["tag_name"].removeprefix("v")
-    if display != expected:
-        raise ValueError(f"Release {expected} contains application version {display}")
-    old = ET.parse(previous).find("channel/item")
-    old_build = old.findtext(SPARKLE + "version")
-    old_display = old.findtext(SPARKLE + "shortVersionString")
-    if version(build) < version(old_build) or (version(build) == version(old_build) and display != old_display):
-        raise ValueError(f"Build must increase: {old_build} -> {build}; rebuild the app before publishing")
+    if display != expected or build != expected:
+        raise ValueError(f"Release {expected} requires application Version and Build {expected}; got {display} ({build})")
     asset = next(asset for asset in release["assets"] if asset["name"] == "ClipCV.dmg")
     if enclosure.get("url") != asset["browser_download_url"] or int(enclosure.get("length")) != asset["size"]:
         raise ValueError("Appcast URL or file size does not match the release")
@@ -48,4 +39,4 @@ def validate(generated, previous, release):
 
 
 if __name__ == "__main__":
-    validate(Path(sys.argv[1]), Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_text()))
+    validate(Path(sys.argv[1]), json.loads(Path(sys.argv[2]).read_text()))

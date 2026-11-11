@@ -51,7 +51,7 @@ jobs:
             --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$release_tag" \
             --maximum-versions 1 --maximum-deltas 0 \
             "$RUNNER_TEMP/updates"
-          python3 scripts/validate_appcast.py "$RUNNER_TEMP/updates/appcast.xml" appcast.xml "$RUNNER_TEMP/release.json"
+          python3 scripts/validate_appcast.py "$RUNNER_TEMP/updates/appcast.xml" "$RUNNER_TEMP/release.json"
           cp "$RUNNER_TEMP/updates/appcast.xml" appcast.xml
 
       - name: Publish appcast
