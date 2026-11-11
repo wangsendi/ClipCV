@@ -71,7 +71,7 @@ final class HistoryPanelController {
             contentRect: NSRect(
                 x: 0,
                 y: 0,
-                width: PopupStyle.defaultWidth,
+                width: PopupStyle.listWidth,
                 height: PopupStyle.defaultPanelHeight
             ),
             styleMask: [.nonactivatingPanel, .resizable, .closable, .fullSizeContentView],
@@ -107,10 +107,9 @@ final class HistoryPanelController {
 
     func show(at anchor: PanelAnchor) {
         previewLeading = false
-        // Size from the real item count before the first frame: the cursor-anchored
-        // origin depends on height, so a stale height would land the panel far away.
+        // 光标定位依赖面板高度，先按实际记录数计算尺寸。
         setPanelFrame(
-            NSRect(origin: panel.frame.origin, size: NSSize(width: PopupStyle.defaultWidth, height: openHeight)),
+            NSRect(origin: panel.frame.origin, size: NSSize(width: PopupStyle.listWidth, height: openHeight)),
             display: false
         )
         let effective = resolvedAnchor(from: anchor)
@@ -157,8 +156,7 @@ final class HistoryPanelController {
     }
 
     func resizeForContent(itemCount: Int) {
-        // Coalesce resize requests (Maccy pattern): several state changes in one
-        // SwiftUI update would otherwise fire competing setFrames = visible jump.
+        // 合并同轮视图更新中的尺寸请求，避免窗口反复跳动。
         pendingItemCount = itemCount
         guard resizeCoalesceTask == nil else { return }
         resizeCoalesceTask = Task { @MainActor in
@@ -243,7 +241,7 @@ final class HistoryPanelController {
 
     private func previewGeometry(in frame: NSRect) -> PreviewGeometry {
         PreviewGeometry(
-            listW: PopupStyle.defaultWidth,
+            listW: PopupStyle.listWidth,
             previewW: PopupStyle.previewWidth,
             listX: anchoredListMinX ?? listMinX(in: frame)
         )
@@ -256,14 +254,12 @@ final class HistoryPanelController {
     }
 
     private func setPanelFrame(_ frame: NSRect, display: Bool) {
-        // Instant everywhere: animated resizes fought across show/content/preview
-        // paths and read as jumping; instant is also snappiest for a utility popup.
         panel.setFrame(frame, display: display, animate: false)
         PanelChrome.applyRoundedCorners(to: panel, radius: PopupStyle.panelCornerRadius)
     }
 
     private func listMinX(in frame: NSRect) -> CGFloat {
-        let expanded = abs(frame.width - (PopupStyle.defaultWidth + PopupStyle.previewWidth)) < 2
+        let expanded = abs(frame.width - (PopupStyle.listWidth + PopupStyle.previewWidth)) < 2
         return expanded && previewLeading ? frame.minX + PopupStyle.previewWidth : frame.minX
     }
 

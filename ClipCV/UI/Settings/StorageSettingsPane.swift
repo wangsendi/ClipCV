@@ -12,10 +12,7 @@ struct StorageSettingsPane: View {
         let chinese = settings.appLanguage.resolvedIsChinese
 
         SettingsPage(contentWidth: 420) {
-            SettingsSection(
-                title: L10n.t(.save),
-                footnote: L10n.t(.saveDescription)
-            ) {
+            SettingsSection(title: L10n.t(.save)) {
                 SettingsRow(
                     title: SettingsLabelStyle.titled(L10n.t(.save), chinese: chinese),
                     alignment: .top

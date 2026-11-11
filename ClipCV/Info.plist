@@ -4,8 +4,8 @@
 <dict>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
-	<key>NSDownloadsFolderUsageDescription</key>
-	<string>ClipCV needs read access to restore copied files from Downloads.</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>

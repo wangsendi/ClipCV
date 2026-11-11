@@ -76,8 +76,6 @@ private struct HistoryContentView: View {
     @State private var scrollToID: UUID?
     @State private var mouseMoveMonitor: Any?
     @State private var isPreviewEditing = false
-    @State private var confirmClearAll = false
-    @State private var confirmClearUnpinned = false
 
     private var canReorderPins: Bool { query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     private var filtered: [ClipboardItem] {
@@ -95,10 +93,10 @@ private struct HistoryContentView: View {
         return settings.searchVisibility != .duringSearch || !query.isEmpty || searchFocused
     }
 
-    // 分离布局、事件与弹窗，避免主视图同时承担多种职责。
+    // 分离布局与事件，避免主视图同时承担多种职责。
     var body: some View {
         let _ = settings.appLanguage
-        panelWithClearDialogs
+        panelContent
             .onChange(of: isPreviewEditing) { _, editing in
                 actions.setSuppressAutoClose(editing)
                 if !editing { searchFocused = true }
@@ -167,23 +165,6 @@ private struct HistoryContentView: View {
         )
     }
 
-    private var panelWithClearDialogs: some View {
-        panelContent
-            .confirmationDialog(L10n.t(.clearUnpinned), isPresented: $confirmClearUnpinned) {
-                Button(L10n.t(.clearUnpinned), role: .destructive) { actions.clear(false) }
-                Button(L10n.t(.cancel), role: .cancel) {}
-            } message: {
-                Text(L10n.t(.clearUnpinnedConfirm))
-            }
-            .confirmationDialog(L10n.t(.clearEverything), isPresented: $confirmClearAll) {
-                Button(L10n.t(.clearEverything), role: .destructive) { actions.clear(true) }
-                Button(L10n.t(.cancel), role: .cancel) {}
-            } message: {
-                Text(L10n.t(.clearEverythingConfirm))
-            }
-    }
-
-    // 历史增删后校正选择，避免访问越界。
     private func updateSelection(itemCount count: Int) {
         if count == 0 {
             selectedIndex = 0
@@ -338,8 +319,8 @@ private struct HistoryContentView: View {
 
     private var clearMenu: some View {
         Menu {
-            Button(L10n.t(.clearUnpinned)) { confirmClearUnpinned = true }
-            Button(L10n.t(.clearEverything), role: .destructive) { confirmClearAll = true }
+            Button(L10n.t(.clearUnpinned)) { actions.clear(false) }
+            Button(L10n.t(.clearEverything), role: .destructive) { actions.clear(true) }
         } label: {
             Image(systemName: "trash")
                 .font(.system(size: 12, weight: .medium))

@@ -34,7 +34,6 @@ struct Hotkey: Equatable, Sendable {
         let normalized = flags
             .intersection(.deviceIndependentFlagsMask)
             .intersection([.command, .shift, .option, .control])
-        // Compare only the four modifiers we care about (ignore leftover bits from storage).
         let expected = flagSet.intersection([.command, .shift, .option, .control])
         return self.keyCode == keyCode && expected == normalized
     }

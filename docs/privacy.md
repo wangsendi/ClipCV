@@ -6,11 +6,13 @@
 
 | 数据 | 位置 |
 | --- | --- |
-| 历史记录与 OCR 结果 | `~/Library/Application Support/ClipCV/` |
-| 应用设置 | `~/Library/Preferences/wangsendi.ClipCV.plist` |
+| 历史记录与 OCR 结果 | `~/Library/Containers/wangsendi.ClipCV/Data/Library/Application Support/ClipCV/` |
+| 应用设置 | `~/Library/Containers/wangsendi.ClipCV/Data/Library/Preferences/wangsendi.ClipCV.plist` |
 | 图片缩略图 | 仅缓存在内存中 |
 
 OCR 通过 Apple Vision 在本机执行，识别结果保存在对应历史记录中。不含使用统计或崩溃上报 SDK。
+
+应用使用沙盒。文件记录保存文件引用和本机访问授权书签，不复制文件内容。书签不参与 iCloud 同步，随对应历史记录删除；仅在恢复文件到剪贴板时启用授权，剪贴板被覆盖后释放。
 
 ## 网络访问
 

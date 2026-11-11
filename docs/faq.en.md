@@ -18,6 +18,10 @@ Check whether recording is paused, "Ignore next copy" is enabled, or **Settings 
 
 Defaults are 200 items and 300 MB, adjustable in **Settings → Storage**. Cleanup removes the oldest unpinned items; pinned items remain. Images can be downscaled on save.
 
+## Files from history won't paste
+
+Newly copied files retain access on this Mac after the clipboard is overwritten or the app is relaunched. The original file must still exist and its authorization must remain valid. For older records, records synced from another device, or revoked access, copy the file again in Finder.
+
 ## How does iCloud sync work?
 
 Sign in to iCloud, then enable sync in **Settings → Advanced**. It is off by default and changes require a relaunch. Disabling sync preserves local history and recording. Pausing recording does not disable iCloud sync.

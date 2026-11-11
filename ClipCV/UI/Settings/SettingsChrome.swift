@@ -6,7 +6,6 @@ enum SettingsMetrics {
     static let contentWidth: CGFloat = 440
     static let labelMinWidth: CGFloat = 88
     static let controlMenuWidth: CGFloat = 168
-    static let rowSpacing: CGFloat = 10
     static let sectionSpacing: CGFloat = 16
 }
 
@@ -62,7 +61,6 @@ struct SettingsPage<Content: View>: View {
 
 struct SettingsSection<Content: View>: View {
     var title: String?
-    var footnote: String?
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -90,11 +88,6 @@ struct SettingsSection<Content: View>: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
             )
-
-            if let footnote {
-                SettingsFootnote(footnote)
-                    .padding(.horizontal, 4)
-            }
         }
     }
 }

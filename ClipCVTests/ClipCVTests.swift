@@ -187,7 +187,11 @@ struct ClipCVTests {
         let container = try ModelContainer(for: schema, configurations: [config])
         let defaults = try #require(UserDefaults(suiteName: "ClipCVTests.\(UUID().uuidString)"))
         let settings = AppSettings(defaults: defaults)
-        return (container, settings, ClipboardMonitor(context: container.mainContext, settings: settings))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let fileAccess = ClipboardFileAccess(directory: directory)
+        return (container, settings, ClipboardMonitor(
+            context: container.mainContext, settings: settings, fileAccess: fileAccess
+        ))
     }
 
     private func makeEditFixture() throws -> (ModelContainer, ClipboardMonitor, ClipboardItem) {

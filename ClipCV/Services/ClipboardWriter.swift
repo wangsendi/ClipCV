@@ -1,36 +1,31 @@
 import AppKit
-import Darwin
 
 enum ClipboardWriter {
-    static func write(_ payloads: [ClipboardPayload], to pasteboard: NSPasteboard = .general) throws {
-        // Opening the file lets macOS request folder access before we replace the clipboard.
-        for url in ClipboardRules.fileURLs(from: payloads) {
-            let descriptor = open(url.path, O_RDONLY | O_CLOEXEC)
-            guard descriptor >= 0 else {
-                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO, userInfo: [NSFilePathErrorKey: url.path])
-            }
-            close(descriptor)
-        }
-        pasteboard.clearContents()
-        let marker = NSPasteboard.PasteboardType(ClipboardRules.Kind.internalMarker)
+    @discardableResult
+    static func write(_ payloads: [ClipboardPayload], to pasteboard: NSPasteboard = .general) -> Bool {
         let files = payloads.filter { $0.type == ClipboardRules.Kind.fileURL }
         let others = payloads.filter { $0.type != ClipboardRules.Kind.fileURL }
-
-        if files.isEmpty {
-            payloads.forEach { pasteboard.setData($0.data, forType: .init($0.type)) }
-        } else {
-            // Preserve Finder's file references; converting through URL rewrites them as paths.
-            let items = files.enumerated().map { index, file in
-                let item = NSPasteboardItem()
-                item.setData(file.data, forType: .fileURL)
-                if index == 0 {
-                    // Finder advertises files before filename text so receivers can prefer files.
-                    others.forEach { item.setData($0.data, forType: .init($0.type)) }
-                }
-                return item
+        let marker = NSPasteboard.PasteboardType(ClipboardRules.Kind.internalMarker)
+        guard !files.isEmpty else {
+            // Rich text must stay on one item to avoid duplicate pastes in some apps.
+            pasteboard.clearContents()
+            for payload in others {
+                guard pasteboard.setData(payload.data, forType: .init(payload.type)) else { return false }
             }
-            guard pasteboard.writeObjects(items) else { throw CocoaError(.fileWriteUnknown) }
+            return pasteboard.setData(Data([1]), forType: marker)
         }
-        pasteboard.setData(Data([1]), forType: marker)
+
+        let items = files.enumerated().map { index, payload in
+            let item = NSPasteboardItem()
+            item.setData(payload.data, forType: .fileURL)
+            if index == 0 {
+                // A separate text item before the files makes some receivers ignore the files.
+                others.forEach { item.setData($0.data, forType: .init($0.type)) }
+                item.setData(Data([1]), forType: marker)
+            }
+            return item
+        }
+        pasteboard.clearContents()
+        return pasteboard.writeObjects(items)
     }
 }

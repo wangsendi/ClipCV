@@ -6,11 +6,13 @@
 
 | Data | Location |
 | --- | --- |
-| History and OCR results | `~/Library/Application Support/ClipCV/` |
-| Settings | `~/Library/Preferences/wangsendi.ClipCV.plist` |
+| History and OCR results | `~/Library/Containers/wangsendi.ClipCV/Data/Library/Application Support/ClipCV/` |
+| Settings | `~/Library/Containers/wangsendi.ClipCV/Data/Library/Preferences/wangsendi.ClipCV.plist` |
 | Image thumbnails | Memory only |
 
 OCR runs locally through Apple Vision. Results are saved with the history item. No analytics or crash-reporting SDKs are included.
+
+The app uses App Sandbox. File history stores references and persistent access bookmarks on this Mac, without copying file contents. Bookmarks do not sync through iCloud and are deleted with their history records. Access is activated when restoring files to the clipboard and released after the clipboard is replaced.
 
 ## Network access
 

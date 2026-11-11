@@ -4,8 +4,6 @@ import SwiftUI
 struct AdvancedSettingsPane: View {
     @Environment(AppSettings.self) private var settings
     @State private var showRestartAlert = false
-    @State private var confirmClearUnpinned = false
-    @State private var confirmClearAll = false
 
     private var iCloudAvailable: Bool {
         FileManager.default.ubiquityIdentityToken != nil
@@ -46,9 +44,11 @@ struct AdvancedSettingsPane: View {
                 SettingsBlock(indent: false) {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
-                            Button(L10n.t(.clearUnpinnedNow)) { confirmClearUnpinned = true }
+                            Button(L10n.t(.clearUnpinnedNow)) {
+                                AppRuntime.monitor?.clear(includingPinned: false)
+                            }
                             Button(L10n.t(.clearEverythingNow), role: .destructive) {
-                                confirmClearAll = true
+                                AppRuntime.monitor?.clear(includingPinned: true)
                             }
                         }
                         Toggle(L10n.t(.clearHistoryOnQuit), isOn: $settings.clearOnQuit)
@@ -64,22 +64,6 @@ struct AdvancedSettingsPane: View {
             Button(L10n.t(.iCloudRestartLater), role: .cancel) {}
         } message: {
             Text(L10n.t(.iCloudRestartMessage))
-        }
-        .confirmationDialog(L10n.t(.clearUnpinned), isPresented: $confirmClearUnpinned) {
-            Button(L10n.t(.clearUnpinned), role: .destructive) {
-                AppRuntime.monitor?.clear(includingPinned: false)
-            }
-            Button(L10n.t(.cancel), role: .cancel) {}
-        } message: {
-            Text(L10n.t(.clearUnpinnedConfirm))
-        }
-        .confirmationDialog(L10n.t(.clearEverything), isPresented: $confirmClearAll) {
-            Button(L10n.t(.clearEverything), role: .destructive) {
-                AppRuntime.monitor?.clear(includingPinned: true)
-            }
-            Button(L10n.t(.cancel), role: .cancel) {}
-        } message: {
-            Text(L10n.t(.clearEverythingConfirm))
         }
     }
 

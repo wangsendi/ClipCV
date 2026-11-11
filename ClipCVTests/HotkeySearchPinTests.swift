@@ -141,5 +141,4 @@ struct HotkeySearchPinTests {
         }
         #expect(max(size.width, size.height) <= 200)
     }
-
 }

@@ -154,11 +154,12 @@ enum ClipboardRules {
     }
 
     static func title(for contents: [ClipboardPayload]) -> String {
+        if let files = fileURLText(from: contents), let title = collapsedTitle(from: files, limit: 1_000) {
+            return title
+        }
         if let text = stringText(from: contents), let title = collapsedTitle(from: text) {
             return title
         }
-        let names = fileNames(from: contents)
-        if !names.isEmpty { return names.joined(separator: ", ") }
         if contents.contains(where: { $0.type == Kind.png || $0.type == Kind.tiff }) {
             return TitleToken.image
         }
@@ -244,19 +245,17 @@ enum ClipboardRules {
         }
     }
 
-    static func fileNames(from contents: [ClipboardPayload]) -> [String] {
-        fileURLs(from: contents).map {
-            let name = $0.lastPathComponent.removingPercentEncoding ?? $0.lastPathComponent
-            return name
+    static func fileURLText(from contents: [ClipboardPayload]) -> String? {
+        let paths = fileURLs(from: contents).map {
+            $0.absoluteString.removingPercentEncoding ?? $0.absoluteString
         }
-        .filter { !$0.isEmpty }
+        return paths.isEmpty ? nil : paths.joined(separator: "\n")
     }
 
     static func previewText(for item: ClipboardItem) -> String {
+        if let files = fileURLText(from: item.payloads) { return files }
         if let plain = plainText(from: item.payloads), !plain.isEmpty { return plain }
         if let ocr = item.ocrText, !ocr.isEmpty { return ocr }
-        let files = fileNames(from: item.payloads)
-        if !files.isEmpty { return files.joined(separator: "\n") }
         // Image-only generic titles are list labels — don't show them as preview body.
         if item.hasImage { return "" }
         return localizedTitle(item.title)

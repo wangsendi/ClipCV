@@ -95,7 +95,7 @@ final class MenuBarController: NSObject {
         }
         actions.copyText = { [weak self] text in
             guard let self, !text.isEmpty else { return }
-            guard writeToClipboard([
+            guard ClipboardWriter.write([
                 ClipboardPayload(type: ClipboardRules.Kind.string, data: Data(text.utf8)),
             ]) else { return }
             monitor.notePasteboardChangedByUs()
@@ -151,7 +151,8 @@ final class MenuBarController: NSObject {
 
     private func copy(_ item: ClipboardItem, thenPaste: Bool, plain: Bool) {
         let payloads = plain ? ClipboardRules.payloadsRemovingFormatting(item.payloads) : item.payloads
-        guard !payloads.isEmpty, writeToClipboard(payloads) else { return }
+        guard !payloads.isEmpty else { return }
+        guard monitor.fileAccess.write(payloads, for: item.identifier) else { return }
         monitor.notePasteboardChangedByUs()
         panelController.hide()
         monitor.recordUse(of: item)
@@ -166,21 +167,6 @@ final class MenuBarController: NSObject {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(50))
             PasteService.sendPaste()
-        }
-    }
-
-    private func writeToClipboard(_ payloads: [ClipboardPayload]) -> Bool {
-        do {
-            try ClipboardWriter.write(payloads)
-            return true
-        } catch {
-            let alert = NSAlert(error: error)
-            if let error = error as? POSIXError, [.EACCES, .EPERM].contains(error.code) {
-                alert.informativeText = L10n.t(.fileAccessHint)
-            }
-            NSApp.activate()
-            alert.runModal()
-            return false
         }
     }
 
@@ -296,7 +282,6 @@ final class MenuBarController: NSObject {
         button.isHighlighted = panelController.panel.isVisible || settingsPopover.isShown
     }
 
-    /// Menu bar icons are template images so macOS tints them for light/dark menu bar.
     private func statusItemImage() -> NSImage? {
         if settings.paused {
             return NSImage(systemSymbolName: "pause.circle", accessibilityDescription: "ClipCV")

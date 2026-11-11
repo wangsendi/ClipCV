@@ -49,7 +49,7 @@ enum L10n {
         case showSpecialSymbols, showMenuIcon, showRecentCopyInMenuBar
         case showSearchField, showTitleBeforeSearch, showApplicationIcons
         case showHexColorSwatch, showFooter, footerHiddenWarning
-        case save, files, images, text, saveDescription
+        case save, files, images, text
         case capacity, sortBy, currentCount, currentSize, capacityItems
         case historySizeLimit, historySizeLimitHelp, historySizeUnlimited
         case imageStorageScale, imageStorageScaleHelp, imageStorageScaleOff
@@ -60,7 +60,6 @@ enum L10n {
         case pause
         case clearHistoryOnQuit, clearSystemClipboard
         case clearUnpinnedNow, clearEverythingNow, clearHelp
-        case clearUnpinnedConfirm, clearEverythingConfirm
         case iCloud, iCloudSync, iCloudUnavailable
         case iCloudRestartTitle, iCloudRestartMessage, iCloudRestartNow, iCloudRestartLater
         case iCloudPendingRestart
@@ -70,10 +69,10 @@ enum L10n {
         case sortLastCopied, sortFirstCopied, sortNumberOfCopies
         case highlightBold, highlightItalic, highlightUnderline, highlightColor
         case searchVisibilityAlways, searchVisibilityDuringSearch
-        case unpin, pinToDesktop, pinToDesktopSession, revealInFinder, dragToInsertHint, selectThenDragHint, clear, settings
+        case unpin, pinToDesktop, revealInFinder, clear, settings
         case editItem, alias, aliasPlaceholder, content, contentNotEditable, cancel, done, pinKeyLabel, pinKeyTaken, pinKeyInvalid, copyOCR, recognizeOCR
         case searchPlaceholder, noHistory, noMatches
-        case needsAccessibility, accessibilityCopied, accessibilityCopiedPlain, fileAccessHint, ok
+        case needsAccessibility, accessibilityCopied, accessibilityCopiedPlain, ok
         case showHistory, resumeRecording, pauseRecording, ignoreNextCopy
         case clearUnpinned, clearEverything, quitApp
         case ignoreNextTooltip, pausedTooltip
@@ -114,14 +113,14 @@ enum L10n {
         .historyShortcuts: "历史列表快捷键",
         .shortcutPrefixNone: "无",
         .unpinnedKeyOrder: "非固定顺序：",
-        .unpinnedKeyOrderHelp: "左侧选择前缀，右侧设置按键顺序（默认 ⌘ + 1234567890）。",
-        .pinnedKeyOrderHelp: "左侧选择前缀，右侧设置字母顺序（默认无前缀 + QWEASDZXC）。",
+        .unpinnedKeyOrderHelp: "左侧选择前缀，右侧设置按键顺序。",
+        .pinnedKeyOrderHelp: "左侧选择前缀，右侧设置字母顺序。",
         .open: "打开",
         .pin: "置顶",
         .delete: "删除",
-        .openHelp: "用于打开历史的全局快捷键。默认：⇧⌘C。",
-        .pinHelp: "置顶/取消置顶当前项。默认：⌥P。",
-        .deleteHelp: "删除当前项。默认：⌥⌫。",
+        .openHelp: "打开剪贴板历史。",
+        .pinHelp: "置顶或取消置顶当前项。",
+        .deleteHelp: "删除当前项。",
         .behavior: "行为",
         .pasteAutomatically: "自动粘贴",
         .pasteWithoutFormatting: "纯文本粘贴",
@@ -149,16 +148,15 @@ enum L10n {
         .files: "文件",
         .images: "图像",
         .text: "文本",
-        .saveDescription: "设置何种类型的内容会被保存。",
         .capacity: "容量",
         .sortBy: "排序方式",
         .currentCount: "当前 %d 条",
         .currentSize: "占用 %@",
         .historySizeLimit: "大小上限：",
-        .historySizeLimitHelp: "单位 MB，0 表示不限制。超出后从最旧的未固定项开始删除；固定项保留。可与条数上限同时生效。新安装默认 300 MB。",
+        .historySizeLimitHelp: "单位 MB，0 表示不限制。超限时删除最旧的未固定记录，固定项保留。",
         .historySizeUnlimited: "不限制",
         .imageStorageScale: "图片压缩率：",
-        .imageStorageScaleHelp: "填写百分比，如 50。0 或 100 表示不压缩。",
+        .imageStorageScaleHelp: "0 或 100 保留原图。",
         .imageStorageScaleOff: "不压缩",
         .capacityItems: "条",
         .ignoreApps: "忽略应用",
@@ -166,7 +164,7 @@ enum L10n {
         .ignoreRegexps: "正则表达式",
         .ignoreAllAppsExceptListed: "忽略列表之外的所有应用程序",
         .ignoredAppsDescription: "忽略来自特定应用的内容。此选项并非总是有效，最好同时使用忽略剪贴板类型。",
-        .ignoredPasteboardTypesDescription: "忽略特定剪贴板内容类型。默认提供了一些已知类型，可删除或自行添加。",
+        .ignoredPasteboardTypesDescription: "包含这些剪贴板类型的内容将被忽略。",
         .ignoredRegexpsDescription: "匹配这些正则的复制内容将被忽略。",
         .reset: "重置",
         .add: "添加",
@@ -176,8 +174,6 @@ enum L10n {
         .clearUnpinnedNow: "立即清空未固定",
         .clearEverythingNow: "立即清空全部",
         .clearHelp: "清空未固定：⌥⌘⌫；清空全部：⇧⌥⌘⌫。固定项不会被「清空未固定」删除。",
-        .clearUnpinnedConfirm: "删除所有未固定的历史记录？固定项会保留。",
-        .clearEverythingConfirm: "删除全部历史记录（含固定项）？此操作无法撤销。",
         .iCloud: "iCloud",
         .iCloudSync: "通过 iCloud 同步历史",
         .iCloudUnavailable: "iCloud 不可用，请检查系统账户设置。",
@@ -205,10 +201,7 @@ enum L10n {
         .searchVisibilityDuringSearch: "在搜索过程中",
         .unpin: "取消固定",
         .pinToDesktop: "钉到桌面",
-        .pinToDesktopSession: "仅当前会话，重启后消失",
         .revealInFinder: "在 Finder 中显示",
-        .dragToInsertHint: "拖内容可插入其他 App",
-        .selectThenDragHint: "选中后可拖出插入 · ⌘C 复制",
         .editItem: "编辑",
         .alias: "别名",
         .aliasPlaceholder: "列表显示名（可选）",
@@ -229,7 +222,6 @@ enum L10n {
         .needsAccessibility: "需要辅助功能权限",
         .accessibilityCopied: "内容已复制到剪贴板。若要自动粘贴到当前应用，请允许 ClipCV 使用辅助功能。",
         .accessibilityCopiedPlain: "纯文本已复制到剪贴板。若要自动粘贴到当前应用，请允许 ClipCV 使用辅助功能。",
-        .fileAccessHint: "请在“系统设置 → 隐私与安全性 → 文件与文件夹”中允许 ClipCV 访问文件所在目录，然后重试。",
         .ok: "好",
         .showHistory: "显示历史",
         .resumeRecording: "继续记录",
@@ -242,7 +234,7 @@ enum L10n {
         .pausedTooltip: "记录已暂停。⌥ 点击继续",
         .capturingHotkey: "请按下快捷键…",
         .preview: "预览",
-        .previewHelp: "显示带附加信息的预览。默认：⌃Space。",
+        .previewHelp: "打开或关闭内容预览。",
         .openLabel: "打开：",
         .pinLabel: "置顶：",
         .deleteLabel: "删除：",
@@ -295,14 +287,14 @@ enum L10n {
         .historyShortcuts: "History Shortcuts",
         .shortcutPrefixNone: "None",
         .unpinnedKeyOrder: "Unpinned order:",
-        .unpinnedKeyOrderHelp: "Choose a prefix on the left; edit keys on the right (default ⌘ + 1234567890).",
-        .pinnedKeyOrderHelp: "Choose a prefix on the left; edit letters on the right (default none + QWEASDZXC).",
+        .unpinnedKeyOrderHelp: "Choose a prefix on the left and edit the key order on the right.",
+        .pinnedKeyOrderHelp: "Choose a prefix on the left and edit the letter order on the right.",
         .open: "Open",
         .pin: "Pin",
         .delete: "Delete",
-        .openHelp: "Global shortcut to open history. Default: ⇧⌘C.",
-        .pinHelp: "Pin or unpin the selected item. Default: ⌥P.",
-        .deleteHelp: "Delete the selected item. Default: ⌥⌫.",
+        .openHelp: "Open clipboard history.",
+        .pinHelp: "Pin or unpin the selected item.",
+        .deleteHelp: "Delete the selected item.",
         .behavior: "Behavior",
         .pasteAutomatically: "Paste automatically",
         .pasteWithoutFormatting: "Paste without formatting",
@@ -330,16 +322,15 @@ enum L10n {
         .files: "Files",
         .images: "Images",
         .text: "Text",
-        .saveDescription: "Choose which content types are saved.",
         .capacity: "Capacity",
         .sortBy: "Sort by",
         .currentCount: "%d items",
         .currentSize: "%@ used",
         .historySizeLimit: "Size limit:",
-        .historySizeLimitHelp: "In MB; 0 means unlimited. When over the limit, oldest unpinned items are removed first. Pins are kept. Works together with the item-count limit. Fresh installs default to 300 MB.",
+        .historySizeLimitHelp: "In MB; 0 means unlimited. Oldest unpinned items are removed when over the limit. Pins are kept.",
         .historySizeUnlimited: "Unlimited",
         .imageStorageScale: "Image compression:",
-        .imageStorageScaleHelp: "Enter a percent, e.g. 50. 0 or 100 means no compression.",
+        .imageStorageScaleHelp: "0 or 100 keeps the original image.",
         .imageStorageScaleOff: "None",
         .capacityItems: "items",
         .ignoreApps: "Applications",
@@ -347,7 +338,7 @@ enum L10n {
         .ignoreRegexps: "Regular Expressions",
         .ignoreAllAppsExceptListed: "Ignore all apps except listed",
         .ignoredAppsDescription: "Ignore copies from specific apps. This is not always reliable; prefer ignoring pasteboard types.",
-        .ignoredPasteboardTypesDescription: "Ignore specific pasteboard types. Defaults include known app types; add or remove as needed.",
+        .ignoredPasteboardTypesDescription: "Copies containing these pasteboard types are ignored.",
         .ignoredRegexpsDescription: "Copies matching these regular expressions are ignored.",
         .reset: "Reset",
         .add: "Add",
@@ -357,8 +348,6 @@ enum L10n {
         .clearUnpinnedNow: "Clear Unpinned Now",
         .clearEverythingNow: "Clear Everything Now",
         .clearHelp: "Clear unpinned: ⌥⌘⌫. Clear all: ⇧⌥⌘⌫. Pins are kept when clearing unpinned.",
-        .clearUnpinnedConfirm: "Delete all unpinned history items? Pinned items stay.",
-        .clearEverythingConfirm: "Delete all history including pins? This can’t be undone.",
         .iCloud: "iCloud",
         .iCloudSync: "Sync history via iCloud",
         .iCloudUnavailable: "iCloud is unavailable. Check your account in System Settings.",
@@ -386,10 +375,7 @@ enum L10n {
         .searchVisibilityDuringSearch: "During search",
         .unpin: "Unpin",
         .pinToDesktop: "Pin to Desktop",
-        .pinToDesktopSession: "This session only — gone after quit",
         .revealInFinder: "Reveal in Finder",
-        .dragToInsertHint: "Drag content to insert",
-        .selectThenDragHint: "Select, then drag to insert · ⌘C to copy",
         .editItem: "Edit",
         .alias: "Alias",
         .aliasPlaceholder: "List title (optional)",
@@ -410,7 +396,6 @@ enum L10n {
         .needsAccessibility: "Accessibility Access Required",
         .accessibilityCopied: "Content was copied to the clipboard. Allow ClipCV in Accessibility to paste automatically.",
         .accessibilityCopiedPlain: "Plain text was copied to the clipboard. Allow ClipCV in Accessibility to paste automatically.",
-        .fileAccessHint: "Allow ClipCV to access the file's folder in System Settings → Privacy & Security → Files & Folders, then try again.",
         .ok: "OK",
         .showHistory: "Show History",
         .resumeRecording: "Resume Recording",
@@ -423,7 +408,7 @@ enum L10n {
         .pausedTooltip: "Recording paused. ⌥-click to resume",
         .capturingHotkey: "Press shortcut…",
         .preview: "Preview",
-        .previewHelp: "Show a preview with extra details. Default: ⌃Space.",
+        .previewHelp: "Open or close the content preview.",
         .openLabel: "Open:",
         .pinLabel: "Pin:",
         .deleteLabel: "Delete:",

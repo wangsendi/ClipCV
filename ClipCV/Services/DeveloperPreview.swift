@@ -9,8 +9,6 @@ enum DeveloperPreview {
     // Full JSON highlight / Markdown parse on huge blobs stalls selection.
     nonisolated private static let maxRenderCharacters = 120_000
 
-    // Pure string → AttributedString computation with no UI state:
-    // callable from any executor (used from a detached render task).
     nonisolated static func kind(of text: String) -> DeveloperPreviewKind {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         // Avoid full JSON parse on the main thread for huge blobs.

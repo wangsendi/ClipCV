@@ -87,36 +87,31 @@ struct ClipboardRulesTests {
     }
 
     @Test(arguments: [1, 2], [false, true])
-    func restoringFileHistoryPreservesRepresentationsWithFilesFirst(count: Int, removeFormatting: Bool) throws {
+    func restoringFileHistoryPreservesRepresentations(count: Int, removeFormatting: Bool) throws {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
-        let directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
-            .appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let urls = try makeFileFixtures(count: count)
+        let directory = urls[0].deletingLastPathComponent()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let urls = ["王森迪1108.docx", "ClipCV.xcodeproj"].prefix(count).map {
-            directory.appendingPathComponent($0)
-        }
-        try Data("file fixture".utf8).write(to: urls[0])
-        if count > 1 {
-            try FileManager.default.createDirectory(at: urls[1], withIntermediateDirectories: true)
-        }
         let files = urls.map { ClipboardPayload(type: fileType, data: Data($0.absoluteString.utf8)) }
         let text = ClipboardPayload(type: stringType, data: Data("王森迪1108.docx".utf8))
         let payloads = [text] + files
         pasteboard.setString("overwritten", forType: .string)
 
-        try ClipboardWriter.write(
+        let written = ClipboardWriter.write(
             removeFormatting ? ClipboardRules.payloadsRemovingFormatting(payloads) : payloads,
             to: pasteboard
         )
 
+        #expect(written)
+        let items = try #require(pasteboard.pasteboardItems)
+        #expect(items.count == count)
+        #expect(items.allSatisfy { $0.types.first == .fileURL })
+        #expect(items.first?.string(forType: .string) == "王森迪1108.docx")
         let restored = try #require(pasteboard.readObjects(
             forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
         ) as? [URL])
         #expect(restored == urls)
-        #expect(pasteboard.pasteboardItems?.count == count)
-        #expect(pasteboard.pasteboardItems?.first?.types.first == .fileURL)
         #expect(pasteboard.string(forType: .string) == "王森迪1108.docx")
         #expect(pasteboard.propertyList(forType: .init("NSFilenamesPboardType")) as? [String] == urls.map(\.path))
         #expect(pasteboard.data(forType: .init(ClipboardRules.Kind.internalMarker)) == Data([1]))
@@ -136,7 +131,7 @@ struct ClipboardRulesTests {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
 
-        try ClipboardWriter.write([ClipboardPayload(type: fileType, data: data)], to: pasteboard)
+        ClipboardWriter.write([ClipboardPayload(type: fileType, data: data)], to: pasteboard)
 
         #expect(raw.hasPrefix("file:///.file/id="))
         #expect(pasteboard.data(forType: .fileURL) == data)
@@ -150,42 +145,13 @@ struct ClipboardRulesTests {
         #expect(try Data(contentsOf: URL(fileURLWithPath: path)) == content)
     }
 
-    @Test(arguments: [false, true])
-    func inaccessibleFilesLeaveExistingClipboardUnchanged(missing: Bool) throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appendingPathComponent("protected.docx")
-        if !missing {
-            try Data("file fixture".utf8).write(to: url)
-            try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: url.path)
-        }
-        defer {
-            if !missing {
-                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-            }
-        }
-        let pasteboard = NSPasteboard.withUniqueName()
-        defer { pasteboard.releaseGlobally() }
-        pasteboard.setString("keep existing clipboard", forType: .string)
-        let changeCount = pasteboard.changeCount
-        let payload = ClipboardPayload(type: fileType, data: Data(url.absoluteString.utf8))
-
-        #expect(throws: (any Error).self) {
-            try ClipboardWriter.write([payload], to: pasteboard)
-        }
-
-        #expect(pasteboard.changeCount == changeCount)
-        #expect(pasteboard.string(forType: .string) == "keep existing clipboard")
-    }
-
     @Test func restoringRichTextPreservesFormattingInOneItem() throws {
         let pasteboard = NSPasteboard.withUniqueName()
         defer { pasteboard.releaseGlobally() }
         let text = ClipboardPayload(type: stringType, data: Data("标题".utf8))
         let rich = ClipboardPayload(type: rtfType, data: Data("{\\rtf1 title}".utf8))
 
-        try ClipboardWriter.write([text, rich], to: pasteboard)
+        ClipboardWriter.write([text, rich], to: pasteboard)
 
         #expect(pasteboard.string(forType: .string) == "标题")
         #expect(pasteboard.data(forType: .rtf) == rich.data)
@@ -203,13 +169,34 @@ struct ClipboardRulesTests {
         #expect(truncated.hasSuffix("…"))
     }
 
-    @Test func titleUsesFileNameOrImageLabel() {
+    @Test func titleUsesFileURLOrImageLabel() {
         let file = ClipboardPayload(type: fileType, data: Data("file:///Users/me/报告.pdf".utf8))
-        #expect(ClipboardRules.title(for: [file]) == "报告.pdf")
+        #expect(ClipboardRules.title(for: [file]) == "file:///Users/me/报告.pdf")
         let image = ClipboardPayload(type: pngType, data: Data([0x00, 0x01]))
         #expect(ClipboardRules.title(for: [image]) == ClipboardRules.TitleToken.image)
         #expect(ClipboardRules.localizedTitle(ClipboardRules.TitleToken.image) == L10n.t(.categoryImage))
         #expect(ClipboardRules.isGenericImageTitle(ClipboardRules.TitleToken.image))
+    }
+
+    @Test func fileTitlesAndPreviewsPreferFullURLsWithoutChangingClipboardText() {
+        let urls = [
+            URL(fileURLWithPath: "/Users/test/下载/中文 100%.docx"),
+            URL(fileURLWithPath: "/Users/test/Downloads/bundle.zip"),
+        ]
+        let text = ClipboardPayload(type: stringType, data: Data("中文 100%.docx".utf8))
+        let files = urls.map { ClipboardPayload(type: fileType, data: Data($0.absoluteString.utf8)) }
+        let item = ClipboardItem(title: "", contents: ([text] + files).map {
+            ClipboardContent(type: $0.type, value: $0.data)
+        })
+        let expected = [
+            "file:///Users/test/下载/中文 100%.docx",
+            "file:///Users/test/Downloads/bundle.zip",
+        ]
+
+        #expect(ClipboardRules.title(for: item.payloads) == expected.joined(separator: " "))
+        #expect(ClipboardRules.previewText(for: item) == expected.joined(separator: "\n"))
+        #expect(ClipboardRules.plainText(from: item.payloads) == "中文 100%.docx")
+        #expect(item.payloads == [text] + files)
     }
 
     @Test(arguments: ["图片", "Image", "富文本", "Rich Text", "剪贴板内容", "Clipboard Content"])
@@ -239,5 +226,19 @@ struct ClipboardRulesTests {
         #expect(ClipboardRules.deletionCountForSize(
             unpinnedSizesOldestFirst: sizes, totalBytes: total, limitBytes: 50
         ) == 4)
+    }
+
+    private func makeFileFixtures(count: Int) throws -> [URL] {
+        let directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let urls = ["王森迪1108.docx", "ClipCV.xcodeproj"].prefix(count).map {
+            directory.appendingPathComponent($0)
+        }
+        try Data("file fixture".utf8).write(to: urls[0])
+        if count > 1 {
+            try FileManager.default.createDirectory(at: urls[1], withIntermediateDirectories: true)
+        }
+        return urls
     }
 }

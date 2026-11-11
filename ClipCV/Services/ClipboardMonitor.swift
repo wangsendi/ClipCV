@@ -4,14 +4,16 @@ import SwiftData
 
 @MainActor
 final class ClipboardMonitor {
+    let fileAccess: ClipboardFileAccess
     private let context: ModelContext
     private let settings: AppSettings
     private var changeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
 
-    init(context: ModelContext, settings: AppSettings) {
+    init(context: ModelContext, settings: AppSettings, fileAccess: ClipboardFileAccess? = nil) {
         self.context = context
         self.settings = settings
+        self.fileAccess = fileAccess ?? ClipboardFileAccess()
         settings.onHistoryLimitChanged = { [weak self] _ in
             self?.trimIfNeeded()
             self?.save()
@@ -28,11 +30,13 @@ final class ClipboardMonitor {
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
+        pruneFileBookmarks()
         ensurePinOrders()
         reassignPinKeys(onlyFillMissing: true)
     }
 
     func notePasteboardChangedByUs() {
+        fileAccess.releaseIfNeeded()
         changeCount = NSPasteboard.general.changeCount
     }
 
@@ -45,8 +49,20 @@ final class ClipboardMonitor {
 
     func delete(_ items: [ClipboardItem]) {
         guard !items.isEmpty else { return }
-        items.forEach(context.delete)
+        items.forEach(remove)
         save()
+    }
+
+    private func remove(_ item: ClipboardItem) {
+        fileAccess.remove(item.identifier)
+        context.delete(item)
+    }
+
+    private func pruneFileBookmarks() {
+        var descriptor = FetchDescriptor<ClipboardItem>()
+        descriptor.propertiesToFetch = [\.identifier]
+        guard let items = try? context.fetch(descriptor) else { return }
+        fileAccess.prune(keeping: Set(items.map(\.identifier)))
     }
 
     @discardableResult
@@ -71,26 +87,29 @@ final class ClipboardMonitor {
         }
 
         item.alias = alias.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let content {
-            item.storedContents.forEach(context.delete)
-            let payload = ClipboardPayload(type: ClipboardRules.Kind.string, data: Data(content.utf8))
-            item.contents = [ClipboardContent(type: payload.type, value: payload.data, item: item)]
-            if item.alias.isEmpty {
-                item.title = ClipboardRules.title(for: [payload])
-            }
-        }
+        if let content { replaceContent(of: item, with: content) }
         if item.pinned { item.pinKey = validatedPinKey }
         save()
         return .saved
     }
 
+    // Keep content replacement and its file authorization cleanup together.
+    private func replaceContent(of item: ClipboardItem, with content: String) {
+        fileAccess.remove(item.identifier)
+        item.storedContents.forEach(context.delete)
+        let payload = ClipboardPayload(type: ClipboardRules.Kind.string, data: Data(content.utf8))
+        item.contents = [ClipboardContent(type: payload.type, value: payload.data, item: item)]
+        if item.alias.isEmpty { item.title = ClipboardRules.title(for: [payload]) }
+    }
+
     func togglePin(_ item: ClipboardItem) {
         item.pinned.toggle()
         if item.pinned {
-            let maxOrder = fetchAll().filter(\.pinned).map(\.pinOrder).max() ?? -1
+            let items = fetchAll()
+            let maxOrder = items.filter(\.pinned).map(\.pinOrder).max() ?? -1
             item.pinOrder = maxOrder + 1
             item.pinKey = HotkeyFormatting.nextPinKey(
-                used: Set(fetchAll().compactMap(\.pinKey)),
+                used: Set(items.compactMap(\.pinKey)),
                 order: settings.pinKeyOrder
             )
         } else {
@@ -129,7 +148,7 @@ final class ClipboardMonitor {
         save()
     }
 
-    func reassignPinKeys(onlyFillMissing: Bool = false) {
+    private func reassignPinKeys(onlyFillMissing: Bool = false) {
         let pinned = fetchAll()
             .filter(\.pinned)
             .sorted { $0.pinOrder < $1.pinOrder }
@@ -160,7 +179,7 @@ final class ClipboardMonitor {
         delete(fetchAll().filter { includingPinned || !$0.pinned })
         guard settings.clearSystemClipboard else { return }
         NSPasteboard.general.clearContents()
-        changeCount = NSPasteboard.general.changeCount
+        notePasteboardChangedByUs()
     }
 
     func clearUnpinnedOnQuit() {
@@ -169,6 +188,7 @@ final class ClipboardMonitor {
     }
 
     private func poll() {
+        fileAccess.releaseIfNeeded()
         let pasteboard = NSPasteboard.general
         guard pasteboard.changeCount != changeCount else { return }
         changeCount = pasteboard.changeCount
@@ -178,6 +198,10 @@ final class ClipboardMonitor {
             return
         }
         guard !settings.paused else { return }
+        capture(from: pasteboard)
+    }
+
+    func capture(from pasteboard: NSPasteboard) {
         guard let capture = readPasteboardCapture(from: pasteboard) else { return }
         upsert(capture)
     }
@@ -222,6 +246,7 @@ final class ClipboardMonitor {
             latest.numberOfCopies += 1
             if latest.title != capture.title { latest.title = capture.title }
             if latest.sourceApp == nil { latest.sourceApp = capture.source }
+            fileAccess.capture(capture.payloads, for: latest.identifier)
             save()
             return
         }
@@ -231,6 +256,7 @@ final class ClipboardMonitor {
         capture.payloads.forEach {
             record.appendContent(ClipboardContent(type: $0.type, value: $0.data))
         }
+        fileAccess.capture(capture.payloads, for: record.identifier)
         trimIfNeeded()
         save()
 
@@ -293,7 +319,7 @@ final class ClipboardMonitor {
             unpinned: unpinned.count,
             limit: settings.historyLimit
         )
-        unpinned.prefix(byCount).forEach(context.delete)
+        unpinned.prefix(byCount).forEach(remove)
 
         let sizeLimitMB = settings.historySizeLimitMB
         guard sizeLimitMB > 0 else { return }
@@ -309,7 +335,7 @@ final class ClipboardMonitor {
             totalBytes: totalBytes,
             limitBytes: limitBytes
         )
-        remaining.prefix(bySize).forEach(context.delete)
+        remaining.prefix(bySize).forEach(remove)
     }
 
     private func save() {

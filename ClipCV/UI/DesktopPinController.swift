@@ -69,7 +69,6 @@ final class DesktopPinController {
     }
 }
 
-// MARK: - Pin panel
 
 private final class DesktopPinPanel: NSPanel {
     private let pinID: UUID
@@ -120,7 +119,6 @@ private final class DesktopPinPanel: NSPanel {
     }
 }
 
-// MARK: - Selectable text + insert drag
 
 private struct PinSelectableTextView: NSViewRepresentable {
     let text: String
@@ -235,7 +233,6 @@ private final class PinDragTextView: NSTextView {
     }
 }
 
-// MARK: - Move / content drag handles
 
 private struct WindowMoveHandle: NSViewRepresentable {
     func makeNSView(context: Context) -> WindowMoveNSView { WindowMoveNSView() }
@@ -340,7 +337,6 @@ private final class PinContentDragNSView: NSView {
     }
 }
 
-// MARK: - Pin content view
 
 private struct DesktopPinView: View {
     let snapshot: DesktopPinSnapshot

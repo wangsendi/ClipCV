@@ -67,7 +67,6 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
     case clipcv, clipboard, paperclip, scissors
     var id: Self { self }
 
-    /// SF Symbol name; `nil` means the custom `MenuBarIcon` asset (template).
     var systemImage: String? {
         switch self {
         case .clipcv: nil

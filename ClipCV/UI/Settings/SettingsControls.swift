@@ -68,7 +68,6 @@ struct SettingsHotkeyRow: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .help(title)
 
                 if !value.isCleared {
                     Button { settings.clearHotkey(target) } label: {

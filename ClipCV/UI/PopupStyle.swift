@@ -10,7 +10,6 @@ enum PopupStyle {
     static let itemHeight: CGFloat = 24
     static let panelCornerRadius: CGFloat = cornerRadius + horizontalPadding
 
-    static let defaultWidth: CGFloat = 450
     static let listWidth: CGFloat = 450
     static let maxPanelHeight: CGFloat = 800
     static let previewWidth: CGFloat = 320
@@ -18,72 +17,36 @@ enum PopupStyle {
     static let cursorGap: CGFloat = 12
 
     static let headerHeight: CGFloat = 34
-    // Type icons row + source-app icons row + padding (apps row must never be clipped).
+    // 两行筛选栏都需要保留高度，避免应用图标被裁切。
     static let typeBarHeight: CGFloat = 70
     static var defaultPanelHeight: CGFloat { preferredHeight(itemCount: 10) }
     static var minimumPanelHeight: CGFloat { preferredHeight(itemCount: minimumVisibleItems) }
-    // Empty list keeps chrome + a little breathing room, no placeholder copy.
-    static var emptyPanelHeight: CGFloat { chromeHeight + itemHeight * CGFloat(minimumVisibleItems) }
+    private static var emptyPanelHeight: CGFloat { chromeHeight + itemHeight * CGFloat(minimumVisibleItems) }
 
     private static var chromeHeight: CGFloat {
         headerHeight + typeBarHeight + verticalPadding * 2 + verticalSeparatorPadding + 8
     }
 
-    static var maxVisibleItems: Int {
+    private static var maxVisibleItems: Int {
         max(minimumVisibleItems, Int((maxPanelHeight - chromeHeight) / itemHeight))
     }
 
-    // Never shrink below minimumVisibleItems — filter/search with 1–2 hits was clipping header + app bar.
-    static func preferredHeight(itemCount: Int, imageMaxHeight: Int = 40) -> CGFloat {
+    // 少量搜索结果也要为标题和筛选栏保留足够高度。
+    static func preferredHeight(itemCount: Int) -> CGFloat {
         guard itemCount > 0 else { return emptyPanelHeight }
-        // Approximate with the compact row height; image rows self-size in the scroll view.
-        let row = PopupStyle.itemHeight
-        let maxRows = max(minimumVisibleItems, Int((maxPanelHeight - chromeHeight) / row))
-        let rows = min(max(itemCount, minimumVisibleItems), maxRows)
-        return min(chromeHeight + CGFloat(rows) * row, maxPanelHeight)
+        let rows = min(max(itemCount, minimumVisibleItems), maxVisibleItems)
+        return min(chromeHeight + CGFloat(rows) * itemHeight, maxPanelHeight)
     }
 }
 
-struct VisualEffectView: NSViewRepresentable {
-    var material: NSVisualEffectView.Material = .popover
-    var blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-    }
-}
-
-@available(macOS 26.0, *)
-struct GlassEffectView: NSViewRepresentable {
+struct PopupBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSGlassEffectView {
         let view = NSGlassEffectView()
         view.style = .regular
         return view
     }
 
-    func updateNSView(_ view: NSGlassEffectView, context: Context) {
-        view.style = .regular
-    }
-}
-
-struct PopupBackground: View {
-    var body: some View {
-        if #available(macOS 26.0, *) {
-            GlassEffectView()
-        } else {
-            VisualEffectView()
-        }
-    }
+    func updateNSView(_ view: NSGlassEffectView, context: Context) {}
 }
 
 enum PanelChrome {

@@ -15,11 +15,6 @@ enum DesktopPinSnapshot {
         }
     }
 
-    var previewImage: NSImage? {
-        if case .image(_, let preview) = self { return preview }
-        return nil
-    }
-
     static func make(from item: ClipboardItem, previewMaxSide: CGFloat = 320) -> DesktopPinSnapshot? {
         if let data = item.imagePayloadData {
             let preview = ThumbnailCache.make(from: data, maxSide: previewMaxSide)
