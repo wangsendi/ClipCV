@@ -86,6 +86,47 @@ struct ClipboardRulesTests {
         #expect(ClipboardRules.payloadsRemovingFormatting(files) == files)
     }
 
+    @Test(arguments: [1, 2], [false, true])
+    func restoringFileHistoryDoesNotExposeFilenameText(count: Int, removeFormatting: Bool) throws {
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        let urls = ["王森迪1108.docx", "ClipCV.xcodeproj"].prefix(count).map {
+            FileManager.default.temporaryDirectory.appendingPathComponent($0)
+        }
+        let files = urls.map { ClipboardPayload(type: fileType, data: Data($0.absoluteString.utf8)) }
+        let text = ClipboardPayload(type: stringType, data: Data("王森迪1108.docx".utf8))
+        let payloads = [text] + files
+        pasteboard.setString("overwritten", forType: .string)
+
+        ClipboardWriter.write(
+            removeFormatting ? ClipboardRules.payloadsRemovingFormatting(payloads) : payloads,
+            to: pasteboard
+        )
+
+        let restored = try #require(pasteboard.readObjects(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL])
+        #expect(restored == urls)
+        #expect(pasteboard.pasteboardItems?.count == count)
+        #expect(pasteboard.canReadObject(forClasses: [NSString.self], options: nil) == false)
+        #expect(pasteboard.propertyList(forType: .init("NSFilenamesPboardType")) as? [String] == urls.map(\.path))
+        #expect(pasteboard.data(forType: .init(ClipboardRules.Kind.internalMarker)) == Data([1]))
+    }
+
+    @Test func restoringRichTextPreservesFormattingInOneItem() {
+        let pasteboard = NSPasteboard.withUniqueName()
+        defer { pasteboard.releaseGlobally() }
+        let text = ClipboardPayload(type: stringType, data: Data("标题".utf8))
+        let rich = ClipboardPayload(type: rtfType, data: Data("{\\rtf1 title}".utf8))
+
+        ClipboardWriter.write([text, rich], to: pasteboard)
+
+        #expect(pasteboard.string(forType: .string) == "标题")
+        #expect(pasteboard.data(forType: .rtf) == rich.data)
+        #expect(pasteboard.pasteboardItems?.count == 1)
+        #expect(pasteboard.data(forType: .init(ClipboardRules.Kind.internalMarker)) == Data([1]))
+    }
+
     @Test func titleCollapsesWhitespaceAndTruncates() {
         let spaced = ClipboardPayload(type: stringType, data: Data("第一行\n\n第二行".utf8))
         #expect(ClipboardRules.title(for: [spaced]) == "第一行 第二行")
