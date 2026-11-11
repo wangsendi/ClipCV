@@ -38,4 +38,8 @@ In the panel, `↩` copies and `⌥↩` pastes by default. Letter keys recall pi
 
 ## License and credits
 
-[MIT License](LICENSE). Interaction inspired by [Maccy](https://github.com/p0deje/Maccy); updates powered by [Sparkle](https://github.com/sparkle-project/Sparkle).
+From this license change onward, project-owned code is licensed under [PolyForm Noncommercial 1.0.0](LICENSE), allowing noncommercial use, modification, and distribution. Commercial use requires separate permission from the author.
+
+Code previously released under MIT remains available under MIT. Third-party components retain their respective licenses.
+
+Interaction inspired by [Maccy](https://github.com/p0deje/Maccy); updates powered by [Sparkle](https://github.com/sparkle-project/Sparkle).

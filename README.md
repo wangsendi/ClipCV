@@ -38,4 +38,8 @@
 
 ## 许可证与鸣谢
 
-[MIT License](LICENSE)。交互参考 [Maccy](https://github.com/p0deje/Maccy)，自动更新使用 [Sparkle](https://github.com/sparkle-project/Sparkle)。
+自本次许可变更起，项目自有代码采用 [PolyForm Noncommercial 1.0.0](LICENSE)，允许非商业使用、修改和分发；商业使用需另行取得作者授权。
+
+此前按 MIT 发布的代码仍可按 MIT 使用。第三方组件遵循各自的许可证。
+
+交互参考 [Maccy](https://github.com/p0deje/Maccy)，自动更新使用 [Sparkle](https://github.com/sparkle-project/Sparkle)。
