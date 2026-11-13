@@ -11,7 +11,7 @@ enum AppModelContainer {
         let support = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("ClipCV", isDirectory: true)
-        let sync = UserDefaults.standard.bool(forKey: AppSettings.iCloudSyncDefaultsKey)
+        let sync = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
         return make(in: support, sync: sync)
     }
 

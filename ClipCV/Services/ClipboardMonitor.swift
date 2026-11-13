@@ -5,19 +5,29 @@ import SwiftData
 @MainActor
 final class ClipboardMonitor {
     let fileAccess: ClipboardFileAccess
+    private let limits: HistoryLimitSync
+    private let history: HistoryStore
     private let context: ModelContext
     private let settings: AppSettings
     private var changeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
 
     init(context: ModelContext, settings: AppSettings, fileAccess: ClipboardFileAccess? = nil) {
+        self.limits = HistoryLimitSync(enabled: !AppRuntime.isRunningTests && AppModelContainer.isCloudKitEnabled)
+        self.history = HistoryStore(context: context)
         self.context = context
         self.settings = settings
         self.fileAccess = fileAccess ?? ClipboardFileAccess()
-        settings.onHistoryLimitChanged = { [weak self] _ in
+        settings.onHistoryLimitChanged = { [weak self] _ in self?.updateLimits() }
+        limits.onReceive = { [weak self] count, megabytes in
+            self?.settings.historyLimit = count
+            self?.settings.historySizeLimitMB = megabytes
+        }
+        limits.onReady = { [weak self] in
             self?.trimIfNeeded()
             self?.save()
         }
+        limits.start()
         settings.onPinKeyOrderChanged = { [weak self] _ in
             self?.reassignPinKeys()
         }
@@ -208,7 +218,6 @@ final class ClipboardMonitor {
 
     private struct PasteboardCapture {
         var payloads: [ClipboardPayload]
-        var title: String
         var source: String?
     }
 
@@ -236,33 +245,15 @@ final class ClipboardMonitor {
 
         let title = ClipboardRules.title(for: payloads)
         guard !settings.shouldIgnore(title: title) else { return nil }
-        return PasteboardCapture(payloads: payloads, title: title, source: source)
+        return PasteboardCapture(payloads: payloads, source: source)
     }
 
     private func upsert(_ capture: PasteboardCapture) {
-        if let latest = latestItem(),
-           ClipboardRules.isDuplicate(latest: latest.payloads, new: capture.payloads) {
-            latest.createdAt = .now
-            latest.numberOfCopies += 1
-            if latest.title != capture.title { latest.title = capture.title }
-            if latest.sourceApp == nil { latest.sourceApp = capture.source }
-            fileAccess.capture(capture.payloads, for: latest.identifier)
-            save()
-            return
-        }
-
-        let record = ClipboardItem(createdAt: .now, title: capture.title, sourceApp: capture.source)
-        context.insert(record)
-        capture.payloads.forEach {
-            record.appendContent(ClipboardContent(type: $0.type, value: $0.data))
-        }
+        guard let record = try? history.capture(capture.payloads, source: capture.source) else { return }
         fileAccess.capture(capture.payloads, for: record.identifier)
         trimIfNeeded()
         save()
-
-        guard let imageData = capture.payloads.first(where: {
-            $0.type == ClipboardRules.Kind.png || $0.type == ClipboardRules.Kind.tiff
-        })?.data else { return }
+        guard record.modelContext != nil, let imageData = record.imagePayloadData else { return }
         enrichImageItem(id: record.identifier, imageData: imageData)
     }
 
@@ -299,17 +290,18 @@ final class ClipboardMonitor {
         try? context.fetch(FetchDescriptor<ClipboardItem>(predicate: #Predicate { $0.identifier == id })).first
     }
 
-    private func latestItem() -> ClipboardItem? {
-        var descriptor = FetchDescriptor<ClipboardItem>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
-        descriptor.fetchLimit = 1
-        return try? context.fetch(descriptor).first
-    }
-
     private func fetchAll() -> [ClipboardItem] {
         (try? context.fetch(FetchDescriptor<ClipboardItem>())) ?? []
     }
 
+    private func updateLimits() {
+        limits.publish(count: settings.historyLimit, megabytes: settings.historySizeLimitMB)
+        trimIfNeeded()
+        save()
+    }
+
     private func trimIfNeeded() {
+        guard limits.allowsAutomaticTrim else { return }
         let descriptor = FetchDescriptor<ClipboardItem>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
         guard let all = try? context.fetch(descriptor) else { return }
 

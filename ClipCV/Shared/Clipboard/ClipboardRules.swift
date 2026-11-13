@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 
 struct ClipboardPayload: Equatable, Sendable {
@@ -8,19 +7,26 @@ struct ClipboardPayload: Equatable, Sendable {
 
 enum ClipboardRules {
     enum Kind {
-        static let string = NSPasteboard.PasteboardType.string.rawValue
-        static let rtf = NSPasteboard.PasteboardType.rtf.rawValue
-        static let html = NSPasteboard.PasteboardType.html.rawValue
-        static let png = NSPasteboard.PasteboardType.png.rawValue
-        static let tiff = NSPasteboard.PasteboardType.tiff.rawValue
-        static let fileURL = NSPasteboard.PasteboardType.fileURL.rawValue
+        static let string = "public.utf8-plain-text"
+        static let url = "public.url"
+        static let rtf = "public.rtf"
+        static let html = "public.html"
+        static let png = "public.png"
+        static let tiff = "public.tiff"
+        static let jpeg = "public.jpeg"
+        static let heic = "public.heic"
+        static let fileURL = "public.file-url"
         static let internalMarker = "wangsendi.ClipCV.internal"
         static let source = "org.nspasteboard.source"
     }
 
     static let supportedTypes: Set<String> = [
-        Kind.string, Kind.rtf, Kind.html, Kind.png, Kind.tiff, Kind.fileURL,
+        Kind.string, Kind.url, Kind.rtf, Kind.html, Kind.png, Kind.tiff, Kind.jpeg, Kind.heic, Kind.fileURL,
     ]
+
+    static let imageTypes = [Kind.png, Kind.jpeg, Kind.heic, Kind.tiff]
+
+    static func isImageType(_ type: String) -> Bool { imageTypes.contains(type) }
 
     private static let ignoredMarkers: Set<String> = [
         "org.nspasteboard.TransientType",
@@ -36,17 +42,6 @@ enum ClipboardRules {
 
     static func shouldIgnore(types: Set<String>) -> Bool {
         !types.isDisjoint(with: ignoredMarkers)
-    }
-
-    static func sourceBundleID(from pasteboard: NSPasteboard) -> String? {
-        let type = NSPasteboard.PasteboardType(Kind.source)
-        return [
-            pasteboard.string(forType: type),
-            pasteboard.data(forType: type).flatMap { String(data: $0, encoding: .utf8) },
-        ]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .first { !$0.isEmpty }
-        ?? NSWorkspace.shared.frontmostApplication?.bundleIdentifier
     }
 
     static func isDuplicate(latest: [ClipboardPayload], new: [ClipboardPayload]) -> Bool {
@@ -87,23 +82,6 @@ enum ClipboardRules {
         let hasPNG = payloads.contains { $0.type == Kind.png }
         guard hasPNG else { return payloads }
         return payloads.filter { $0.type != Kind.tiff }
-    }
-
-    static func prepareForStorage(
-        _ payloads: [ClipboardPayload],
-        scalePercent: Int
-    ) -> [ClipboardPayload] {
-        let deduped = preferPNGOverTIFF(payloads)
-        guard (1..<100).contains(scalePercent) else { return deduped }
-        return deduped.map { payload in
-            guard payload.type == Kind.png || payload.type == Kind.tiff,
-                  let size = ThumbnailCache.pixelSize(of: payload.data)
-            else { return payload }
-            let maxSide = max(1, max(size.width, size.height) * scalePercent / 100)
-            guard let png = ThumbnailCache.resizedPNGData(from: payload.data, maxSide: maxSide)
-            else { return payload }
-            return ClipboardPayload(type: Kind.png, data: png)
-        }
     }
 
     static func isIgnorableEmpty(_ contents: [ClipboardPayload]) -> Bool {
@@ -160,26 +138,13 @@ enum ClipboardRules {
         if let text = stringText(from: contents), let title = collapsedTitle(from: text) {
             return title
         }
-        if contents.contains(where: { $0.type == Kind.png || $0.type == Kind.tiff }) {
+        if contents.contains(where: { isImageType($0.type) }) {
             return TitleToken.image
         }
         if contents.contains(where: { $0.type == Kind.html || $0.type == Kind.rtf }) {
             return TitleToken.richText
         }
         return TitleToken.generic
-    }
-
-    static func localizedTitle(_ stored: String) -> String {
-        switch stored {
-        case TitleToken.image:
-            return L10n.t(.categoryImage)
-        case TitleToken.richText:
-            return L10n.t(.richTextTitle)
-        case TitleToken.generic:
-            return L10n.t(.clipboardContent)
-        default:
-            return stored
-        }
     }
 
     static func isGenericImageTitle(_ stored: String) -> Bool {
@@ -201,7 +166,7 @@ enum ClipboardRules {
                 + contents.filter { $0.type == Kind.fileURL }
         }
         return contents.filter {
-            $0.type == Kind.png || $0.type == Kind.tiff || $0.type == Kind.fileURL
+            isImageType($0.type) || $0.type == Kind.fileURL
         }
     }
 
@@ -209,22 +174,6 @@ enum ClipboardRules {
         !item.hasImage
             && fileURLs(from: item.payloads).isEmpty
             && plainText(from: item.payloads) != nil
-    }
-
-    static func plainText(from contents: [ClipboardPayload]) -> String? {
-        if let text = stringText(from: contents) { return text }
-        if let data = contents.first(where: { $0.type == Kind.rtf })?.data,
-           let text = nonEmpty(NSAttributedString(rtf: data, documentAttributes: nil)?.string) {
-            return text
-        }
-        guard let data = contents.first(where: { $0.type == Kind.html })?.data else { return nil }
-        return nonEmpty(
-            NSAttributedString(
-                html: data,
-                options: [.characterEncoding: String.Encoding.utf8.rawValue],
-                documentAttributes: nil
-            )?.string
-        )
     }
 
     static func fileURLs(from contents: [ClipboardPayload]) -> [URL] {
@@ -263,7 +212,7 @@ enum ClipboardRules {
 
     static func hasTextContent(_ item: ClipboardItem) -> Bool {
         item.storedContents.contains {
-            $0.type == Kind.string || $0.type == Kind.rtf || $0.type == Kind.html
+            $0.type == Kind.string || $0.type == Kind.url || $0.type == Kind.rtf || $0.type == Kind.html
         }
     }
 
@@ -272,7 +221,7 @@ enum ClipboardRules {
     }
 
     static func isWebLinkItem(_ item: ClipboardItem) -> Bool {
-        guard let text = plainText(from: item.payloads)?.trimmingCharacters(in: .whitespacesAndNewlines),
+        guard !item.hasImage, !isFileItem(item), hasTextContent(item), let text = plainText(from: item.payloads)?.trimmingCharacters(in: .whitespacesAndNewlines),
               let url = URL(string: text),
               let scheme = url.scheme?.lowercased()
         else { return false }
@@ -281,16 +230,6 @@ enum ClipboardRules {
 
     static func isColorItem(_ item: ClipboardItem) -> Bool {
         parseHexRGB(from: item.title) != nil
-    }
-
-    static func nsColor(fromHexTitle title: String) -> NSColor? {
-        guard let value = parseHexRGB(from: title) else { return nil }
-        return NSColor(
-            calibratedRed: CGFloat((value >> 16) & 0xFF) / 255,
-            green: CGFloat((value >> 8) & 0xFF) / 255,
-            blue: CGFloat(value & 0xFF) / 255,
-            alpha: 1
-        )
     }
 
     static func sourceApps(from items: [ClipboardItem], limit: Int = 16) -> [String] {
@@ -311,15 +250,15 @@ enum ClipboardRules {
         return UInt32(hex, radix: 16)
     }
 
-    private static func stringText(from contents: [ClipboardPayload]) -> String? {
-        guard let data = contents.first(where: { $0.type == Kind.string })?.data,
+    static func stringText(from contents: [ClipboardPayload]) -> String? {
+        guard let data = (contents.first(where: { $0.type == Kind.string }) ?? contents.first(where: { $0.type == Kind.url }))?.data,
               let text = string(from: data),
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else { return nil }
         return text
     }
 
-    private static func nonEmpty(_ text: String?) -> String? {
+    static func nonEmpty(_ text: String?) -> String? {
         guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return text
     }

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>ClipCV · iOS 全页面设计</title>
+  <link rel="stylesheet" href="ios-ui.css">
+  <script src="ios-ui.js" defer></script>
+</head>
+<body>
+<svg class="defs" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="m10 3-.5 2.1-2 .9-1.9-.7-2 3.4 1.5 1.5v2.3l-1.5 1.5 2 3.4 2-.7 2 .9.4 2.4h4l.5-2.4 2-.9 2 .7 2-3.4-1.6-1.5v-2.3l1.5-1.5-2-3.4-1.9.7-2-.9L14 3z"/><circle cx="12" cy="11.5" r="3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="3"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="m15 3 6 6-4 1-4 4-1 4-6-6 4-1 4-4zM8 16l-5 5"/></symbol>
+<symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6V3h14v3M12 3v18M8 21h8"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="m10 14 4-4M8 15l-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 9l2-2a4 4 0 0 0-6-6L8 5" transform="translate(3 2) scale(.8)"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-pip" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="16" rx="3"/><rect x="11" y="11" width="8" height="6" rx="1.5"/><path d="m6 8 3 3M6 11h3V8"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="3.2"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 10 7-10 7z"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M8 9H5v12h14V9h-3M12 15V2m-4 4 4-4 4 4"/></symbol>
+<symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-7 7M10 21H3v-7m0 7 7-7"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24"><path d="M6 18a4.5 4.5 0 0 1-.5-9 6.5 6.5 0 0 1 12.5-1 5 5 0 0 1 .5 10z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-storage" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M7 15h4"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></symbol>
+<symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M7 16h10"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5m-5 5 5-5 5 5"/></symbol>
+<symbol id="i-insert" viewBox="0 0 24 24"><path d="M5 17 18 4M8 4h10v10M4 10v10h10"/></symbol>
+<symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-6 6 7"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></symbol>
+<symbol id="i-sea" viewBox="0 0 300 350"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#f5ddd1"/><stop offset=".72" stop-color="#e8e7d7"/><stop offset="1" stop-color="#d4e3dc"/></linearGradient><linearGradient id="water" x2="0" y2="1"><stop stop-color="#b4ccc4"/><stop offset="1" stop-color="#879e91"/></linearGradient><linearGradient id="sand" x2=".2" y2="1"><stop stop-color="#e9e0c7"/><stop offset="1" stop-color="#c9c9a6"/></linearGradient></defs><path fill="url(#sky)" d="M0 0h300v350H0z"/><circle cx="214" cy="103" r="37" fill="#fff2cc" opacity=".9"/><path fill="#b3bba8" d="m0 185 58-53 45 12 42 38 47-15 53 28 55-15v170H0z"/><path fill="url(#water)" d="M0 195q100-18 170 2t130-1v154H0z"/><path d="M0 239q69-18 128-6t172-9M0 262q83-14 173-2t127-1" stroke="#f5f1df" stroke-width="2" opacity=".6" fill="none"/><path fill="url(#sand)" d="M0 306q78-54 135-46t165 66v24H0z"/><path d="M0 300q86-52 138-40t162 58" stroke="#f6f4df" stroke-width="3" opacity=".75" fill="none"/><path d="m22 333 5-39 5 39m7 0 4-26 4 26m-1-8 10-22" stroke="#889576" fill="none" stroke-width="1.5"/><path d="m53 95 5 2 4-2m5 7 4 1 3-2" stroke="#9ba59b" fill="none" stroke-width="1.3"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14z"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 9h10M7 13h10M7 17h6"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11z"/></symbol>
+<symbol id="i-sort" viewBox="0 0 24 24"><path d="M8 4v16m-3-3 3 3 3-3M16 20V4m-3 3 3-3 3 3"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8zM14 3v5h5M8 13h8m-8 4h5"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16"/></symbol>
+</defs></svg>
+<main class="page">
+  <header class="masthead">
+    <div><p class="eyebrow">CLIPCV / IOS DESIGN STUDY</p><h1>ClipCV · iOS</h1></div>
+    <div class="header-tools">
+      <div class="palette" aria-label="浅灰、白、黑、绿配色"><i></i><i></i><i></i><i></i></div>
+      <div class="mode-switch" aria-label="浏览方式"><button data-mode="gallery" class="active">页面总览</button><button data-mode="preview">单页体验</button></div>
+    </div>
+  </header>
+  <nav class="group-nav" id="group-nav" aria-label="页面分组"></nav>
+  <div class="board-heading"><div><span id="group-index"></span><h2 id="group-title"></h2></div><div class="board-tools"><button class="text-button" id="previous-group" aria-label="上一组">←</button><span id="page-progress"></span><button class="text-button" id="next-group" aria-label="下一组">→</button></div></div>
+  <section class="board" id="board" aria-label="设计页面"></section>
+  <nav class="page-nav" id="page-nav" aria-label="单页导航" hidden></nav>
+  <footer class="footnote"><p>设计原型 · 27 个页面与状态</p><p>示例数据<button id="reset-demo">重置演示</button></p></footer>
+</main>
+</body>
+</html>

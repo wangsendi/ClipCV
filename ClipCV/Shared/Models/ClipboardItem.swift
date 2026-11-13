@@ -59,11 +59,11 @@ final class ClipboardItem {
 
     var imagePayloadData: Data? {
         storedContents.first(where: {
-            $0.type == ClipboardRules.Kind.png || $0.type == ClipboardRules.Kind.tiff
+            ClipboardRules.isImageType($0.type)
         })?.value
     }
 
-    var hasImage: Bool { imagePayloadData != nil }
+    var hasImage: Bool { storedContents.contains { ClipboardRules.isImageType($0.type) } }
 
     func appendContent(_ content: ClipboardContent) {
         var next = storedContents

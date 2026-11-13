@@ -12,11 +12,12 @@ cd ClipCV
 open ClipCV.xcodeproj
 ```
 
-Press `⌘R` in Xcode, or use the command line:
+Choose `ClipCV → My Mac` or `ClipCViOS → iPhone Simulator`, then press `⌘R`. From the command line:
 
 ```bash
 xcodebuild -project ClipCV.xcodeproj -scheme ClipCV -configuration Debug build
 xcodebuild -project ClipCV.xcodeproj -scheme ClipCV -only-testing:ClipCVTests test
+xcodebuild -project ClipCV.xcodeproj -scheme ClipCViOS -destination 'platform=iOS Simulator,name=iPhone 18 Pro' test
 ```
 
 ## Release
@@ -32,8 +33,10 @@ After replacing a published package, run **Actions → Update appcast → Run wo
 
 ## Code layout
 
-`ClipCV/Models` contains data models, `Services` holds core logic, and `UI` contains views. Tests live in `ClipCVTests`.
+Shared code lives in `ClipCV/Shared`, the mobile app in `ClipCV/iOS`, and the keyboard in `ClipCV/Extensions/Keyboard`. Mac-specific files remain in the original `Models`, `Services`, and `UI` folders. See the [directory guide](architecture.md).
 
-Strings live in [Localization.swift](../ClipCV/Services/Localization.swift). Add each new `L10n.Key` to both language dictionaries.
+Mac strings live in [Localization.swift](../ClipCV/Services/Localization.swift); iOS uses `ClipCV/iOS/Localizable.xcstrings`.
+
+The iOS launch argument `--design-preview` uses an in-memory sample history without reading or writing the system clipboard. Unit tests use isolated stores and pasteboards; UI tests use the sample history. Device validation is tracked in the [iOS TODO](ios-todo.md).
 
 See [CI](../.github/workflows/ci.yml) for automated builds and tests.
